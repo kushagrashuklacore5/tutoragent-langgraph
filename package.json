@@ -1,0 +1,37 @@
+{
+  "name": "ekbharat-platform",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "workspaces": [
+    "packages/*",
+    "packages/ai-adapters/*",
+    "modules/*/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "db:up": "node tooling/dev-db.ts up",
+    "db:down": "node tooling/dev-db.ts down",
+    "migrate": "node apps/api/src/cli.ts migrate",
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "node tooling/lint.ts",
+    "boundaries": "node tooling/check-boundaries.ts",
+    "test": "node --test --test-concurrency=1 \"packages/**/*.test.ts\" \"modules/**/*.test.ts\" \"apps/**/*.test.ts\" \"tests/**/*.test.ts\"",
+    "test:unit": "node --test \"packages/**/*.unit.test.ts\" \"modules/**/*.unit.test.ts\"",
+    "conformance:live": "node --test packages/ai-gateway/conformance/live.test.ts",
+    "check": "npm run lint && npm run boundaries && npm run typecheck && npm test",
+    "start:api": "node apps/api/src/main.ts",
+    "start:worker": "node apps/worker/src/main.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "@types/pg": "^8.23.1",
+    "typescript": "5.9"
+  },
+  "dependencies": {
+    "ajv": "^8.20.0",
+    "pg": "^8.23.1"
+  }
+}

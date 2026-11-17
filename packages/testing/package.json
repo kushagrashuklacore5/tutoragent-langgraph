@@ -1,0 +1,14 @@
+{
+  "name": "@platform/testing",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@platform/core": "*",
+    "@platform/tenancy-db": "*",
+    "@platform/identity": "*",
+    "@platform/audit": "*",
+    "@platform/jobs": "*"
+  }
+}
