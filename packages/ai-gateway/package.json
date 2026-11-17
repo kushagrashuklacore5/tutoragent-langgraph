@@ -1,0 +1,24 @@
+{
+  "name": "@platform/ai-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./testing": "./src/testing.ts"
+  },
+  "dependencies": {
+    "@platform/core": "*",
+    "@platform/observability": "*",
+    "@platform/tenancy-db": "*",
+    "@platform/audit": "*",
+    "@platform/ai-adapter-kit": "*",
+    "@platform/ai-adapter-openai": "*",
+    "@platform/ai-adapter-anthropic": "*",
+    "@platform/ai-adapter-google-gemini": "*",
+    "@platform/ai-adapter-groq": "*",
+    "@platform/ai-adapter-ollama": "*",
+    "@platform/ai-adapter-openai-compatible": "*",
+    "ajv": "*"
+  }
+}

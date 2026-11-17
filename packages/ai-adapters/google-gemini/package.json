@@ -1,0 +1,13 @@
+{
+  "name": "@platform/ai-adapter-google-gemini",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@platform/ai-adapter-kit": "*",
+    "@platform/observability": "*"
+  }
+}

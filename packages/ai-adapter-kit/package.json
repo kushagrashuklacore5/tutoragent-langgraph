@@ -1,0 +1,9 @@
+{
+  "name": "@platform/ai-adapter-kit",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared helpers for AI provider adapters. Contains no vendor SDKs.",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": { "@platform/core": "*", "@platform/observability": "*" }
+}

@@ -1,0 +1,3 @@
+{
+  "enabled": ["openai", "anthropic", "google-gemini", "groq", "ollama", "openai-compatible"]
+}

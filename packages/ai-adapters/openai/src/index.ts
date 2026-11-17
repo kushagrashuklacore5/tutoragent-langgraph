@@ -1,0 +1,26 @@
+import {
+  openAiEmbed, openAiGenerate, openAiListModels, openAiStream, openAiTest,
+  type OpenAiStyleOptions, type ProviderAdapter,
+} from '@platform/ai-adapter-kit'
+
+/** OpenAI API adapter (chat completions, embeddings, model listing). */
+const o: OpenAiStyleOptions = { provider: 'OpenAI', maxTokensField: 'max_completion_tokens', streamUsage: true, reasoningEffort: true, requiresKey: true }
+
+export const adapter: ProviderAdapter = {
+  descriptor: {
+    type: 'openai',
+    version: '1.0.0',
+    displayName: 'OpenAI',
+    operations: ['generate', 'stream', 'embed'],
+    defaultBaseUrl: 'https://api.openai.com/v1',
+    requiresApiKey: true,
+    supportsDiscovery: true,
+    supportsPrivateNetwork: false,
+  },
+  testConnection: (c) => openAiTest(c, o),
+  listModels: (c) => openAiListModels(c, o),
+  generate: (c, m, r, s) => openAiGenerate(c, m, r, o, s),
+  stream: (c, m, r, s) => openAiStream(c, m, r, o, s),
+  embed: (c, m, r, s) => openAiEmbed(c, m, r, o, s),
+}
+export default adapter
