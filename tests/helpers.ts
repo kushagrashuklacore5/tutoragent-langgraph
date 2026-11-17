@@ -7,7 +7,7 @@ import { createSystemDatabase } from '@platform/tenancy-db/system'
 import { createTestDatabase, type TestDatabase } from '@platform/tenancy-db/testing'
 import { memoryTransport } from '@platform/identity'
 import { ADAPTERS, localKeyManager } from '@platform/ai-gateway'
-import { createFakeAdapter } from '@platform/ai-gateway/testing'
+import { createFakeAdapter, type FakeBehaviour } from '@platform/ai-gateway/testing'
 import { configureLogging } from '@platform/observability'
 import type { ModuleManifest } from '@platform/contracts'
 import { migrationSetsFor } from '@platform/module-runtime'
@@ -28,14 +28,14 @@ export interface Harness {
 }
 
 /** Start the API (in-process HTTP server) on a fresh database with the given modules. */
-export async function startHarness(modules: ModuleManifest[], opts: { test?: TestDatabase; migrate?: boolean } = {}): Promise<Harness> {
+export async function startHarness(modules: ModuleManifest[], opts: { test?: TestDatabase; migrate?: boolean; fake?: FakeBehaviour } = {}): Promise<Harness> {
   if (!process.env.TEST_VERBOSE) configureLogging({ level: 'error', sink: () => undefined })
   const test = opts.test ?? (await createTestDatabase('api'))
   if (opts.migrate !== false) await migrate(test.ownerUrl, migrationSetsFor(modules))
   const db = createDatabase(test.appUrl, { max: 5 })
   const system = createSystemDatabase(test.systemUrl, { max: 5 })
   const mail = memoryTransport()
-  const fake = createFakeAdapter('fake')
+  const fake = createFakeAdapter('fake', opts.fake)
   const app = createApp({
     env: 'test', db, system, keyManager: KM, mail, publicBaseUrl: 'http://app.test', allowedOrigins: ['http://app.test'],
     modules, adapters: { ...ADAPTERS, fake }, moduleCacheMs: 0,

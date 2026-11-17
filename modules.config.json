@@ -1,1 +1,1 @@
-{ "enabled": [] }
+{ "enabled": [ { "id": "education.tutor", "package": "@modules/education-tutor-agent" } ] }
