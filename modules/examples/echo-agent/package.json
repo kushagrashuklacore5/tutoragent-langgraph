@@ -1,0 +1,13 @@
+{
+  "name": "@modules/examples-echo-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/manifest.ts"
+  },
+  "dependencies": {
+    "@platform/contracts": "*",
+    "@platform/core": "*"
+  }
+}

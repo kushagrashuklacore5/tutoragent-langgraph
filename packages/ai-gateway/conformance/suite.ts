@@ -205,7 +205,7 @@ export function defineConformanceSuite(t: ConformanceTarget): void {
     })
     if (t.adapter.descriptor.requiresApiKey) {
       test(name('errors: bad key -> auth, and the key never appears in errors or logs'), async () => {
-        const bad = connectionFor(t, { apiKey: 'sk-test-WRONGKEY-abcdefghijklmnop' })
+        const bad = connectionFor(t, { apiKey: 'bad-key-WRONGKEY-abcdefghijklmnop' })
         const e = await expectKind(t.chatModel, ['auth'], bad)
         assert.ok(!e.message.includes('WRONGKEY'))
         assert.ok(!e.message.includes(t.apiKey ?? '§'))

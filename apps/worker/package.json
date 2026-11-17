@@ -1,0 +1,15 @@
+{
+  "name": "@platform/app-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@platform/core": "*",
+    "@platform/observability": "*",
+    "@platform/tenancy-db": "*",
+    "@platform/jobs": "*",
+    "@platform/ai-gateway": "*",
+    "@platform/module-runtime": "*",
+    "@platform/app-api": "*"
+  }
+}

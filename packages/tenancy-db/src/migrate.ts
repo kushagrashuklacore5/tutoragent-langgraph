@@ -57,6 +57,8 @@ export async function migrate(ownerUrl: string, sets: MigrationSet[]): Promise<{
     await c.query(`create table if not exists public.schema_migrations (
       owner text not null, name text not null, checksum text not null, applied_at timestamptz not null default now(),
       primary key (owner, name))`)
+    // read-only for the system role (module verify-absent checks the ledger)
+    await c.query(`grant select on public.schema_migrations to ${SYSTEM_ROLE}`)
     for (const set of sets) {
       if (!/^[a-z][a-z0-9_]*$/.test(set.schema)) throw new AppError('migration_invalid', `Invalid schema name ${set.schema}`)
       await c.query(`create schema if not exists ${set.schema}`)

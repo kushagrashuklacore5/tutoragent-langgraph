@@ -1,0 +1,23 @@
+{
+  "name": "@platform/module-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Builds the running platform from enabled module manifests: permissions, routes, jobs, events, AI tasks, migrations.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./lifecycle": "./src/lifecycle.ts"
+  },
+  "dependencies": {
+    "@platform/core": "*",
+    "@platform/observability": "*",
+    "@platform/tenancy-db": "*",
+    "@platform/identity": "*",
+    "@platform/audit": "*",
+    "@platform/jobs": "*",
+    "@platform/events": "*",
+    "@platform/ai-gateway": "*",
+    "@platform/contracts": "*",
+    "pg": "*"
+  }
+}

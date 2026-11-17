@@ -20,7 +20,7 @@
     "boundaries": "node tooling/check-boundaries.ts",
     "test": "node --test --test-concurrency=1 \"packages/**/*.test.ts\" \"modules/**/*.test.ts\" \"apps/**/*.test.ts\" \"tests/**/*.test.ts\"",
     "test:unit": "node --test \"packages/**/*.unit.test.ts\" \"modules/**/*.unit.test.ts\"",
-    "conformance:live": "node --test packages/ai-gateway/conformance/live.test.ts",
+    "conformance:live": "node --test packages/ai-gateway/conformance/live.conformance.ts",
     "check": "npm run lint && npm run boundaries && npm run typecheck && npm test",
     "start:api": "node apps/api/src/main.ts",
     "start:worker": "node apps/worker/src/main.ts"
