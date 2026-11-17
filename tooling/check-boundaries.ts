@@ -32,11 +32,16 @@ const LAYERS: Record<string, string[]> = {
   events: ['core', 'jobs', 'tenancy-db'],
   'ai-adapter-kit': ['core', 'observability'],
   'ai-gateway': ['core', 'observability', 'tenancy-db', 'audit', 'ai-adapter-kit', 'ai-adapter-*'],
-  contracts: ['core', 'tenancy-db', 'jobs', 'events', 'ai-gateway'],
-  'module-runtime': ['core', 'observability', 'tenancy-db', 'identity', 'audit', 'jobs', 'events', 'ai-gateway', 'contracts'],
+  'math-client': ['core', 'observability'],
+  'field-crypto': ['core', 'observability', 'tenancy-db', 'ai-gateway'],
+  documents: ['core', 'observability', 'tenancy-db', 'audit'],
+  retrieval: ['core', 'observability', 'tenancy-db', 'documents', 'ai-gateway'],
+  'ai-evals': ['core', 'observability', 'tenancy-db', 'ai-gateway', 'ai-adapter-kit', 'math-client'],
+  contracts: ['core', 'tenancy-db', 'jobs', 'events', 'ai-gateway', 'documents', 'retrieval'],
+  'module-runtime': ['core', 'observability', 'tenancy-db', 'identity', 'audit', 'jobs', 'events', 'ai-gateway', 'contracts', 'documents', 'retrieval', 'field-crypto', 'math-client'],
   testing: ['*'],
 }
-const SYSTEM_DB_ALLOWED = new Set(['identity', 'jobs', 'ai-gateway', 'module-runtime', 'testing', 'tenancy-db'])
+const SYSTEM_DB_ALLOWED = new Set(['identity', 'jobs', 'ai-gateway', 'module-runtime', 'testing', 'tenancy-db', 'documents', 'retrieval', 'field-crypto', 'ai-evals'])
 const MODULE_ALLOWED = ['core', 'contracts', 'observability', 'tenancy-db']
 const MODULE_TEST_EXTRA = ['testing', 'ai-gateway/testing', 'tenancy-db/testing', 'module-runtime', 'module-runtime/lifecycle', 'jobs', 'app-api', 'ai-gateway']
 const VENDOR_PKGS = /^(openai|@anthropic-ai\/|@google\/(generative-ai|genai)|groq-sdk|ollama$|@mistralai\/|cohere-ai)/
