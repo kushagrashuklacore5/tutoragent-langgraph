@@ -1,0 +1,16 @@
+{
+  "name": "@platform/retrieval",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@platform/core": "*",
+    "@platform/observability": "*",
+    "@platform/tenancy-db": "*",
+    "@platform/documents": "*",
+    "@platform/ai-gateway": "*"
+  }
+}

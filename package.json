@@ -15,7 +15,7 @@
     "db:up": "node tooling/dev-db.ts up",
     "db:down": "node tooling/dev-db.ts down",
     "migrate": "node apps/api/src/cli.ts migrate",
-    "typecheck": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json && npm run typecheck -w @platform/app-web --if-present",
     "lint": "node tooling/lint.ts",
     "boundaries": "node tooling/check-boundaries.ts",
     "test": "node --test --test-concurrency=1 \"packages/**/*.test.ts\" \"modules/**/*.test.ts\" \"apps/**/*.test.ts\" \"tests/**/*.test.ts\"",
