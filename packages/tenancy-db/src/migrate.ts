@@ -71,7 +71,7 @@ export async function migrate(ownerUrl: string, sets: MigrationSet[]): Promise<{
       )
       for (const f of files) {
         const sql = readFileSync(join(set.dir, f), 'utf8')
-        const sum = sha256(sql)
+        const sum = sha256(sql.replace(/\r\n/g, '\n')) // line-ending independent
         const prev = done.get(f)
         if (prev) {
           if (prev !== sum) throw new AppError('migration_checksum_mismatch', `${set.owner}/${f} changed after it was applied`)
