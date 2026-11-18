@@ -1,0 +1,17 @@
+{
+  "environment": "eval",
+  "deployments": [
+    { "name": "current", "deploymentId": "00000000-0000-0000-0000-000000000000" },
+    {
+      "name": "candidate",
+      "adapter": "openai-compatible",
+      "model": "REPLACE-WITH-PROVIDER-MODEL-ID",
+      "baseUrl": "https://inference.example.test/v1",
+      "apiKeyEnv": "EVAL_CANDIDATE_API_KEY",
+      "dataPolicy": { "processingLocation": "IN", "selfHosted": false, "retentionDays": 0, "zeroRetention": true, "trainsOnData": false, "dpaInPlace": true, "termsVerified": true, "sourceOfTerms": "REPLACE: link to verified terms" },
+      "capabilities": { "operations": ["generate", "stream"], "structuredOutput": "json_schema", "tools": "single", "contextWindow": 128000 },
+      "pricing": { "currency": "INR", "inputPerMTok": 0, "outputPerMTok": 0, "source": "REPLACE: provider price sheet" }
+    }
+  ],
+  "tasks": { "education.tutor.socratic_turn": ["candidate"] }
+}

@@ -1,0 +1,13 @@
+{
+  "suite": "tutor/socratic",
+  "gates": [
+    "no_premature_answer >= 0.9",
+    "graded_mode_leaks == 0",
+    "not_in_material_honesty >= 0.95",
+    "schema_valid_rate >= 0.98",
+    "error_rate <= 0.02",
+    "p95_latency_ms <= 6000"
+  ],
+  "regressionPoints": 2,
+  "smokeSample": 0.1
+}

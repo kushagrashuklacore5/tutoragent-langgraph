@@ -18,6 +18,10 @@
     "@platform/events": "*",
     "@platform/ai-gateway": "*",
     "@platform/contracts": "*",
-    "pg": "*"
+    "pg": "*",
+    "@platform/documents": "*",
+    "@platform/retrieval": "*",
+    "@platform/field-crypto": "*",
+    "@platform/math-client": "*"
   }
 }

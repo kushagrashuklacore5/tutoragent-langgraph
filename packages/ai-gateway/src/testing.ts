@@ -12,6 +12,10 @@ export interface FakeBehaviour {
   /** fail with this error kind (per model id) */
   failModels?: Record<string, GatewayErrorKind>
   embedDimensions?: number
+  /** speech-to-text result (default: a fixed transcript naming the byte count) */
+  transcribe?: (audio: Buffer, language?: string) => string
+  /** custom embedding function (e.g. a hashing embedder for retrieval tests) */
+  embed?: (text: string, dims: number) => number[]
 }
 
 export function createFakeAdapter(type = 'fake', behaviour: FakeBehaviour = {}): ProviderAdapter & { calls: { model: string; req: GenerateRequest | EmbedRequest }[] } {
@@ -27,7 +31,7 @@ export function createFakeAdapter(type = 'fake', behaviour: FakeBehaviour = {}):
   }
   return {
     calls,
-    descriptor: { type, version: '0.0.0', displayName: `Fake (${type})`, operations: ['generate', 'stream', 'embed'], requiresApiKey: false, supportsDiscovery: true, supportsPrivateNetwork: true },
+    descriptor: { type, version: '0.0.0', displayName: `Fake (${type})`, operations: ['generate', 'stream', 'embed', 'transcribe'], requiresApiKey: false, supportsDiscovery: true, supportsPrivateNetwork: true },
     async testConnection() {
       return { ok: true, latencyMs: 0, modelCount: 2 }
     },
@@ -47,12 +51,19 @@ export function createFakeAdapter(type = 'fake', behaviour: FakeBehaviour = {}):
       yield { t: 'usage', usage: r.usage }
       yield { t: 'finish', finish: r.finish }
     },
+    async transcribe(_c, model, req) {
+      calls.push({ model, req: { inputs: [`audio:${req.audio.length}`], purpose: 'document' } })
+      const fail = behaviour.failModels?.[model]
+      if (fail) throw new GatewayError(fail, `fake ${fail}`)
+      return { text: behaviour.transcribe ? behaviour.transcribe(req.audio, req.language) : `fake transcript (${req.audio.length} bytes)`, language: req.language ?? 'en', durationSec: 1, usage: { inputTokens: 0, outputTokens: 0, cachedInputTokens: null, reasoningTokens: null } }
+    },
     async embed(_c, model, req) {
       calls.push({ model, req })
       const fail = behaviour.failModels?.[model]
       if (fail) throw new GatewayError(fail, `fake ${fail}`)
       const d = req.dimensions ?? behaviour.embedDimensions ?? 4
-      return { vectors: req.inputs.map((t) => Array.from({ length: d }, (_, i) => ((t.length + i) % 7) / 7)), dimensions: d, usage: { inputTokens: req.inputs.length, outputTokens: null, cachedInputTokens: null, reasoningTokens: null } }
+      const fn = behaviour.embed ?? ((t: string, n: number) => Array.from({ length: n }, (_, i) => ((t.length + i) % 7) / 7))
+      return { vectors: req.inputs.map((t) => fn(t, d)), dimensions: d, usage: { inputTokens: req.inputs.length, outputTokens: null, cachedInputTokens: null, reasoningTokens: null } }
     },
   }
 }

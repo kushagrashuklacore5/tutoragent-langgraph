@@ -15,8 +15,11 @@ export interface JobRow {
 
 export interface JobContext {
   job: JobRow
-  /** run `fn` inside the job tenant's RLS transaction (throws for tenant-less jobs) */
-  inTenant<T>(fn: (tx: Sql) => Promise<T>): Promise<T>
+  /**
+   * run `fn` inside the job tenant's RLS transaction (throws for tenant-less jobs). With `as`, act on
+   * behalf of one active member of that tenant (needed for owner-only rows such as a student's own data).
+   */
+  inTenant<T>(fn: (tx: Sql) => Promise<T>, as?: { userId: string; roles?: string[] }): Promise<T>
   /**
    * Perform a side effect at most once per job, even across crash/retry. The effect key is recorded
    * in the same transaction as `fn`'s writes.
@@ -82,9 +85,14 @@ export function createWorker(o: WorkerOptions) {
   }
 
   function contextFor(job: JobRow): JobContext {
-    const inTenant = <T>(fn: (tx: Sql) => Promise<T>) => {
+    const inTenant = <T>(fn: (tx: Sql) => Promise<T>, as?: { userId: string; roles?: string[] }) => {
       if (!job.tenant_id) throw new PermanentJobError('job has no tenant')
-      return o.db.withTenant({ tenantId: job.tenant_id }, fn)
+      if (!as) return o.db.withTenant({ tenantId: job.tenant_id }, fn)
+      return o.db.withTenant({ tenantId: job.tenant_id, userId: as.userId, roles: as.roles }, async (tx) => {
+        const m = await tx.query('select 1 from platform.memberships where user_id = $1 and status = $2', [as.userId, 'active'])
+        if (!m.rowCount) throw new PermanentJobError('user is not an active member of the job tenant')
+        return fn(tx)
+      })
     }
     return {
       job,

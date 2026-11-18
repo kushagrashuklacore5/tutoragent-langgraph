@@ -1,6 +1,9 @@
 import http from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { randomBytes } from 'node:crypto'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { devNoopScanner, localObjectStore } from '@platform/documents'
 import { migrate } from '@platform/tenancy-db'
 import { createDatabase } from '@platform/tenancy-db'
 import { createSystemDatabase } from '@platform/tenancy-db/system'
@@ -9,7 +12,7 @@ import { memoryTransport } from '@platform/identity'
 import { ADAPTERS, localKeyManager } from '@platform/ai-gateway'
 import { createFakeAdapter, type FakeBehaviour } from '@platform/ai-gateway/testing'
 import { configureLogging } from '@platform/observability'
-import type { ModuleManifest } from '@platform/contracts'
+import type { MathChecker, ModuleManifest } from '@platform/contracts'
 import { migrationSetsFor } from '@platform/module-runtime'
 import { createApp, type App } from '@platform/app-api'
 
@@ -28,7 +31,7 @@ export interface Harness {
 }
 
 /** Start the API (in-process HTTP server) on a fresh database with the given modules. */
-export async function startHarness(modules: ModuleManifest[], opts: { test?: TestDatabase; migrate?: boolean; fake?: FakeBehaviour } = {}): Promise<Harness> {
+export async function startHarness(modules: ModuleManifest[], opts: { test?: TestDatabase; migrate?: boolean; fake?: FakeBehaviour; documents?: boolean; math?: MathChecker } = {}): Promise<Harness> {
   if (!process.env.TEST_VERBOSE) configureLogging({ level: 'error', sink: () => undefined })
   const test = opts.test ?? (await createTestDatabase('api'))
   if (opts.migrate !== false) await migrate(test.ownerUrl, migrationSetsFor(modules))
@@ -38,7 +41,8 @@ export async function startHarness(modules: ModuleManifest[], opts: { test?: Tes
   const fake = createFakeAdapter('fake', opts.fake)
   const app = createApp({
     env: 'test', db, system, keyManager: KM, mail, publicBaseUrl: 'http://app.test', allowedOrigins: ['http://app.test'],
-    modules, adapters: { ...ADAPTERS, fake }, moduleCacheMs: 0,
+    modules, adapters: { ...ADAPTERS, fake }, moduleCacheMs: 0, math: opts.math,
+    documents: opts.documents ? { store: localObjectStore(join(tmpdir(), `ebdocs-${randomBytes(4).toString('hex')}`), randomBytes(32)), scanner: devNoopScanner, embeddingDimensions: 256 } : undefined,
   })
   const server = http.createServer((req, res) => void app.handler(req, res))
   await new Promise<void>((r) => server.listen(0, '127.0.0.1', r))

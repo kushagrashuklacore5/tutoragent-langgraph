@@ -3,7 +3,7 @@
  * Nothing here is specific to any vendor.
  */
 
-export type Operation = 'generate' | 'stream' | 'embed'
+export type Operation = 'generate' | 'stream' | 'embed' | 'transcribe'
 export type StructuredLevel = 'none' | 'json_mode' | 'json_schema'
 export type ToolLevel = 'none' | 'single' | 'parallel'
 
@@ -109,6 +109,22 @@ export interface EmbedRequest {
 export interface EmbedResult {
   vectors: number[][]
   dimensions: number
+  usage: Usage
+}
+
+/** Speech-to-text. `language` is an ISO-639-1 hint (e.g. 'hi', 'en'); omitted = auto-detect. */
+export interface TranscribeRequest {
+  audio: Buffer
+  mimeType: string
+  filename?: string
+  language?: string
+  /** domain words to bias recognition (course title, concept names) */
+  prompt?: string
+}
+export interface TranscribeResult {
+  text: string
+  language: string | null
+  durationSec: number | null
   usage: Usage
 }
 

@@ -7,9 +7,10 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@platform/audit": "*",
     "@platform/core": "*",
     "@platform/observability": "*",
     "@platform/tenancy-db": "*",
-    "@platform/audit": "*"
+    "pdfjs-dist": "^5.7.284"
   }
 }

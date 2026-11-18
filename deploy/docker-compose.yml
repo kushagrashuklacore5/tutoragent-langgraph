@@ -1,0 +1,97 @@
+# Local full stack: Postgres (pgvector), migrations, API, worker, maths solver.
+# NOT RUN OR TESTED: Docker is not installed in the environment where this was written.
+#   cp deploy/compose/.env.example deploy/compose/.env   # fill in the values
+#   docker compose -f deploy/docker-compose.yml --env-file deploy/compose/.env up --build
+# This is a development stack (PLATFORM_ENV=development, local key manager, dev mail outbox,
+# no TLS). Production runs the same images with the production environment of deploy/ENVIRONMENT.md.
+name: ekbharat
+
+x-app: &app
+  build:
+    context: ..
+    dockerfile: deploy/Dockerfile
+  read_only: true
+  tmpfs: ["/tmp"]
+  cap_drop: ["ALL"]
+  security_opt: ["no-new-privileges:true"]
+  depends_on:
+    migrate: { condition: service_completed_successfully }
+  environment: &appenv
+    PLATFORM_ENV: development
+    LOG_LEVEL: info
+    DATABASE_URL: postgres://platform_owner:${OWNER_DB_PASSWORD:?set OWNER_DB_PASSWORD}@postgres:5432/ekbharat
+    APP_DATABASE_URL: postgres://platform_app:${APP_DB_PASSWORD:?set APP_DB_PASSWORD}@postgres:5432/ekbharat
+    SYSTEM_DATABASE_URL: postgres://platform_system:${SYSTEM_DB_PASSWORD:?set SYSTEM_DB_PASSWORD}@postgres:5432/ekbharat
+    PLATFORM_MASTER_KEY: ${PLATFORM_MASTER_KEY:?set PLATFORM_MASTER_KEY (32 random bytes, base64)}
+    KMS_PROVIDER: local
+    MAIL_TRANSPORT: dev_outbox
+    PUBLIC_BASE_URL: http://localhost:8080
+    ALLOWED_ORIGINS: http://localhost:5173
+    DOCUMENT_STORE_DIR: /data/documents
+    DOCUMENT_SCANNER: dev-noop
+    MATH_SOLVER_URL: http://math-solver:8765
+    OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+  volumes:
+    - documents:/data/documents
+  networks: [backend, math-internal]
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: platform_owner
+      POSTGRES_PASSWORD: ${OWNER_DB_PASSWORD:?set OWNER_DB_PASSWORD}
+      POSTGRES_DB: ekbharat
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?set APP_DB_PASSWORD}
+      SYSTEM_DB_PASSWORD: ${SYSTEM_DB_PASSWORD:?set SYSTEM_DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./compose/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U platform_owner -d ekbharat"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [backend]
+    # not published on the host; use `docker compose exec postgres psql` for access
+
+  migrate:
+    <<: *app
+    depends_on:
+      postgres: { condition: service_healthy }
+    command: ["node", "apps/api/src/cli.ts", "migrate"]
+    restart: "no"
+    healthcheck: { disable: true }
+
+  api:
+    <<: *app
+    build: { context: .., dockerfile: deploy/Dockerfile, target: api }
+    ports: ["127.0.0.1:8080:8080"]
+    restart: unless-stopped
+
+  worker:
+    <<: *app
+    build: { context: .., dockerfile: deploy/Dockerfile, target: worker }
+    restart: unless-stopped
+
+  math-solver:
+    # built by services/math-solver/Dockerfile (owned by the maths-solver workstream)
+    build: { context: ../services/math-solver }
+    read_only: true
+    tmpfs: ["/tmp"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 64
+    mem_limit: 1g
+    cpus: 1
+    networks: [math-internal]
+    restart: unless-stopped
+
+networks:
+  backend: {}
+  math-internal:
+    internal: true   # the solver has no route to the outside world
+
+volumes:
+  pgdata: {}
+  documents: {}

@@ -2,58 +2,41 @@ import { fileURLToPath } from 'node:url'
 import { AppError, badRequest, notFound } from '@platform/core'
 import type { ModuleDeps, ModuleManifest, Principal, RouteDef } from '@platform/contracts'
 import type { Sql } from '@platform/tenancy-db'
-import { estimate, probeCandidates, type Evidence, type MasteryEstimate } from './domain/learner-model.ts'
+import { estimate } from './domain/learner-model.ts'
 import { newCard, review, type Grade } from './domain/fsrs.ts'
-import { buildPlan, recoverPlan, type PlanConcept } from './domain/planner.ts'
-import { advance, chooseMove, evidenceOutcome, verifySegments, type IntegrityMode, type Segment, type SessionState } from './domain/tutoring.ts'
-import { score, validateSpec, type AnswerSpec } from './domain/scoring.ts'
-import { TASKS, PROMPT_VERSION, buildSocraticPrompt } from './ai.ts'
-
-const ID = 'education.tutor'
-const P = {
-  read: `${ID}:course.read`,
-  manage: `${ID}:course.manage`,
-  study: `${ID}:study`,
-} as const
-
-const UUID = /^[0-9a-f-]{36}$/i
-const uuid = (v: unknown, name: string): string => {
-  if (typeof v !== 'string' || !UUID.test(v)) throw badRequest('invalid_id', `${name} must be a UUID`)
-  return v
-}
-const str = (v: unknown, name: string, max = 2000): string => {
-  if (typeof v !== 'string' || !v.trim() || v.length > max) throw badRequest('invalid_field', `${name} is required (max ${max} chars)`)
-  return v.trim()
-}
-const obj = (b: unknown): Record<string, unknown> => (b && typeof b === 'object' ? (b as Record<string, unknown>) : {})
-
-async function requireEnrolled(tx: Sql, p: Principal, courseId: string): Promise<{ title: string; integrity_mode: IntegrityMode; role: string }> {
-  const r = await tx.query<{ title: string; integrity_mode: IntegrityMode; role: string }>(
-    `select c.title, c.integrity_mode, e.role from education_tutor.courses c
-     join education_tutor.enrolments e on e.course_id = c.id and e.user_id = $2 where c.id = $1`, [courseId, p.userId])
-  if (!r.rows[0]) throw notFound('Course')
-  return r.rows[0]
-}
-
-async function evidenceFor(tx: Sql, conceptIds: string[]): Promise<Map<string, Evidence[]>> {
-  const m = new Map<string, Evidence[]>(conceptIds.map((c) => [c, []]))
-  if (!conceptIds.length) return m
-  const r = await tx.query<{ concept_id: string; kind: Evidence['kind']; outcome: string; hints_used: number; observed_at: Date }>(
-    `select concept_id, kind, outcome, hints_used, observed_at from education_tutor.evidence where concept_id = any($1) and user_id = platform.current_user_id()`, [conceptIds])
-  for (const e of r.rows) m.get(e.concept_id)?.push({ kind: e.kind, outcome: Number(e.outcome), hintsUsed: e.hints_used, observedAt: e.observed_at })
-  return m
-}
-
-async function courseGraph(tx: Sql, courseId: string) {
-  const concepts = (await tx.query<{ id: string; name: string; est_minutes: number; exam_weight: string }>(
-    `select id, name, est_minutes, exam_weight from education_tutor.concepts where course_id = $1 and status = 'approved' order by name`, [courseId])).rows
-  const edges = (await tx.query<{ from_concept: string; to_concept: string }>(
-    `select e.from_concept, e.to_concept from education_tutor.concept_edges e join education_tutor.concepts c on c.id = e.to_concept where c.course_id = $1`, [courseId])).rows
-  return { concepts, edges }
-}
+import type { SessionState } from './domain/tutoring.ts'
+import { isRubricSpec, score, scoreExpression, type AnswerSpec, type ScoreResult } from './domain/scoring.ts'
+import { itemRoutes, mathUnavailable } from './items.ts'
+import { progressRoutes } from './progress.ts'
+import { TASKS } from './ai.ts'
+import { courseGraph, evidenceFor, ID, obj, P, requireEnrolled, str, uuid } from './common.ts'
+import { generatePlan } from './plans.ts'
+import { turnRoutes } from './turns.ts'
+import { SCHEDULES, tutorJobs } from './jobs.ts'
+import { MATERIAL_TASKS, materialRoutes } from './materials.ts'
+import { DIAGNOSIS_TASKS, diagnosisRoutes } from './diagnosis.ts'
+import { coachRoutes } from './coach.ts'
+import { VOICE_TASKS, voiceRoutes } from './voice.ts'
+import { GENERATION_TASKS, generationRoutes } from './assessgen.ts'
+import { ASSESSMENT_TASKS, assessmentRoutes } from './assessments.ts'
+import { agentRoutes } from './agent/routes.ts'
+import { studioRoutes } from './studio/routes.ts'
+import { growthRoutes } from './growth/routes.ts'
+import { GROWTH_TASKS } from './growth/prompts.ts'
+import { STUDIO_TASKS } from './studio/prompts.ts'
+import { AGENT_TASKS } from './agent/prompts.ts'
 
 function routes(d: ModuleDeps): RouteDef[] {
   const tx = <T>(p: Principal, fn: (t: Sql) => Promise<T>) => d.inTenant(p, fn)
+  const inRange = (v: unknown, name: string, min: number, max: number, integer = false) => {
+    const n = Number(v)
+    if (!Number.isFinite(n) || n < min || n > max || (integer && !Number.isInteger(n))) throw badRequest('invalid_field', `${name} must be ${integer ? 'a whole number ' : ''}between ${min} and ${max}`)
+    return n
+  }
+  const mathOf = () => {
+    if (!d.math) throw mathUnavailable()
+    return d.math
+  }
   return [
     // ── course structure (educators) ──
     { method: 'GET', path: '/courses', permission: P.read, handler: async ({ principal }) => tx(principal, async (t) =>
@@ -99,7 +82,7 @@ function routes(d: ModuleDeps): RouteDef[] {
         await requireEnrolled(t, principal, uuid(params.courseId, 'courseId'))
         const r = await t.query<{ id: string }>(
           `insert into education_tutor.concepts (tenant_id, course_id, name, description, est_minutes, exam_weight) values (platform.current_tenant(), $1, $2, $3, $4, $5) returning id`,
-          [params.courseId, str(b.name, 'name', 200), typeof b.description === 'string' ? b.description : '', Number(b.estMinutes ?? 60), Number(b.examWeight ?? 1)])
+          [params.courseId, str(b.name, 'name', 200), typeof b.description === 'string' ? b.description.slice(0, 4000) : '', inRange(b.estMinutes ?? 60, 'estMinutes', 5, 600, true), inRange(b.examWeight ?? 1, 'examWeight', 0.1, 10)])
         const id = r.rows[0]!.id
         for (const p of pre) {
           const ok = await t.query('select 1 from education_tutor.concepts where id = $1 and course_id = $2', [p, params.courseId])
@@ -115,22 +98,8 @@ function routes(d: ModuleDeps): RouteDef[] {
       if (!r.rowCount) throw notFound('Concept')
       await d.audit(t, principal, { action: 'concept.approved', targetType: 'concept', targetId: params.conceptId })
     }) },
-    { method: 'POST', path: '/courses/:courseId/items', permission: P.manage, handler: async ({ principal, params, body }) => {
-      const b = obj(body)
-      const spec = b.answerSpec as AnswerSpec
-      if (!spec || !['mcq', 'numeric'].includes(spec.type)) throw badRequest('answer_spec_invalid', 'answerSpec.type must be mcq or numeric')
-      const problems = validateSpec(spec)
-      if (problems.length) throw badRequest('answer_spec_invalid', problems.join('; '))
-      return tx(principal, async (t) => {
-        await requireEnrolled(t, principal, uuid(params.courseId, 'courseId'))
-        const r = await t.query<{ id: string }>(
-          `insert into education_tutor.items (tenant_id, course_id, concept_id, type, stem, answer_spec, explanation, difficulty)
-           select platform.current_tenant(), $1, c.id, $3, $4, $5, $6, $7 from education_tutor.concepts c where c.id = $2 and c.course_id = $1 returning id`,
-          [params.courseId, uuid(b.conceptId, 'conceptId'), spec.type, str(b.stem, 'stem', 4000), JSON.stringify(spec), typeof b.explanation === 'string' ? b.explanation : '', Number(b.difficulty ?? 0.5)])
-        if (!r.rows[0]) throw notFound('Concept')
-        return { id: r.rows[0].id }
-      })
-    } },
+    ...itemRoutes(d),
+    ...progressRoutes(d),
 
     // ── practice + learner profile (students) ──
     { method: 'GET', path: '/courses/:courseId/practice/next', permission: P.study, handler: async ({ principal, params, query }) => tx(principal, async (t) => {
@@ -144,7 +113,7 @@ function routes(d: ModuleDeps): RouteDef[] {
       // aim for a ~70-85% success zone: item difficulty close to current mastery
       const item = (await t.query<{ id: string; type: string; stem: string; answer_spec: AnswerSpec }>(
         `select i.id, i.type, i.stem, i.answer_spec from education_tutor.items i
-         where i.concept_id = $1 and not exists (select 1 from education_tutor.attempts a where a.item_id = i.id and a.created_at > now() - interval '1 day')
+         where i.concept_id = $1 and i.retired_at is null and i.status = 'approved' and i.type in ('mcq', 'numeric', 'expression') and not exists (select 1 from education_tutor.attempts a where a.item_id = i.id and a.user_id = platform.current_user_id() and a.created_at > now() - interval '1 day')
          order by abs(i.difficulty - $2), i.id limit 1`, [target.id, p])).rows[0]
       if (!item) return { conceptId: target.id, item: null, message: 'No unseen practice items for this concept right now.' }
       // never send the answer to the client
@@ -154,20 +123,41 @@ function routes(d: ModuleDeps): RouteDef[] {
       const b = obj(body)
       const confidence = b.confidence === undefined ? null : String(b.confidence)
       if (confidence && !['sure', 'unsure', 'guess'].includes(confidence)) throw badRequest('confidence_invalid', 'confidence must be sure|unsure|guess')
-      const hints = Math.max(0, Math.min(4, Number(b.hintsUsed ?? 0)))
-      return tx(principal, async (t) => {
-        const item = (await t.query<{ id: string; course_id: string; concept_id: string; answer_spec: AnswerSpec; explanation: string }>(
-          'select id, course_id, concept_id, answer_spec, explanation from education_tutor.items where id = $1', [uuid(b.itemId, 'itemId')])).rows[0]
+      const clientHints = Math.max(0, Math.min(6, Number(b.hintsUsed ?? 0)))
+      const itemId = uuid(b.itemId, 'itemId')
+      const load = async (t: Sql) => {
+        const item = (await t.query<{ id: string; course_id: string; concept_id: string; answer_spec: AnswerSpec; explanation: string; retired_at: Date | null }>(
+          'select id, course_id, concept_id, answer_spec, explanation, retired_at from education_tutor.items where id = $1', [itemId])).rows[0]
         if (!item) throw notFound('Item')
         await requireEnrolled(t, principal, item.course_id)
-        const s = score(item.answer_spec, b.response)
+        if (item.retired_at) throw new AppError('item_retired', 'This question has been withdrawn by your educator', { status: 409 })
+        return item
+      }
+      // symbolic answers are checked by the maths service OUTSIDE the transaction (bounded by its timeout)
+      let checked: ScoreResult | undefined
+      const first = await tx(principal, load)
+      if (first.answer_spec.type === 'expression') {
+        const r = await scoreExpression(mathOf(), first.answer_spec, b.response)
+        if (!r) throw mathUnavailable()
+        checked = r
+      }
+      return tx(principal, async (t) => {
+        const item = await load(t)
+        if (item.answer_spec.type === 'expression' && (!checked || JSON.stringify(item.answer_spec) !== JSON.stringify(first.answer_spec))) {
+          throw new AppError('item_changed', 'This question changed while your answer was being checked; please submit again', { status: 409 })
+        }
+        if (isRubricSpec(item.answer_spec)) throw badRequest('use_assessment', 'Written-answer questions are marked inside assessments')
+        const s = item.answer_spec.type === 'expression' ? checked! : score(item.answer_spec, b.response)
         if (s.feedbackKey === 'invalid_response') throw badRequest('response_invalid', 'Response is not valid for this item')
-        await t.query(`insert into education_tutor.attempts (tenant_id, user_id, item_id, response, outcome, confidence, hints_used) values (platform.current_tenant(), $1, $2, $3, $4, $5, $6)`,
-          [principal.userId, item.id, JSON.stringify(b.response), s.outcome, confidence, hints])
+        // hints the server actually gave (hint ladder) count even if the client under-reports; the ladder resets per attempt
+        const seen = (await t.query<{ max_level: number }>('delete from education_tutor.hint_usage where user_id = platform.current_user_id() and item_id = $1 returning max_level', [item.id])).rows[0]?.max_level ?? 0
+        const hints = Math.max(clientHints, seen)
+        const attemptId = (await t.query<{ id: string }>(`insert into education_tutor.attempts (tenant_id, user_id, item_id, response, outcome, confidence, hints_used) values (platform.current_tenant(), $1, $2, $3, $4, $5, $6) returning id`,
+          [principal.userId, item.id, JSON.stringify(b.response), s.outcome, confidence, hints])).rows[0]!.id
         await t.query(`insert into education_tutor.evidence (tenant_id, user_id, concept_id, kind, outcome, hints_used, source_ref) values (platform.current_tenant(), $1, $2, 'practice', $3, $4, $5)`,
           [principal.userId, item.concept_id, s.outcome, hints, `item:${item.id}`])
         const m = estimate((await evidenceFor(t, [item.concept_id])).get(item.concept_id)!)
-        return { correct: s.correct, outcome: s.outcome, explanation: item.explanation, confidentAndWrong: confidence === 'sure' && !s.correct, mastery: m }
+        return { attemptId, correct: s.correct, outcome: s.outcome, explanation: item.explanation, confidentAndWrong: confidence === 'sure' && !s.correct, mastery: m }
       })
     } },
     { method: 'GET', path: '/courses/:courseId/mastery', permission: P.study, handler: async ({ principal, params }) => tx(principal, async (t) => {
@@ -188,20 +178,20 @@ function routes(d: ModuleDeps): RouteDef[] {
       })
     } },
     { method: 'GET', path: '/cards/due', permission: P.study, handler: async ({ principal }) => tx(principal, async (t) =>
-      (await t.query(`select id, course_id, concept_id, front, back, due_at from education_tutor.cards where due_at <= now() order by due_at limit 50`)).rows) },
+      (await t.query(`select id, course_id, concept_id, front, back, due_at from education_tutor.cards where user_id = platform.current_user_id() and due_at <= now() order by due_at limit 50`)).rows) },
     { method: 'POST', path: '/cards/:cardId/review', permission: P.study, handler: async ({ principal, params, body }) => {
       const grade = Number(obj(body).grade)
       if (![1, 2, 3, 4].includes(grade)) throw badRequest('grade_invalid', 'grade must be 1 (again), 2 (hard), 3 (good) or 4 (easy)')
       return tx(principal, async (t) => {
-        const c = (await t.query<{ stability: number; difficulty: number; reps: number; lapses: number; last_review: Date | null; due_at: Date; concept_id: string | null }>(
-          'select stability, difficulty, reps, lapses, last_review, due_at, concept_id from education_tutor.cards where id = $1', [uuid(params.cardId, 'cardId')])).rows[0]
+        const c = (await t.query<{ stability: number; difficulty: number; reps: number; lapses: number; last_review: Date | null; due_at: Date; concept_id: string | null; purpose: string }>(
+          'select stability, difficulty, reps, lapses, last_review, due_at, concept_id, purpose from education_tutor.cards where id = $1 and user_id = platform.current_user_id()', [uuid(params.cardId, 'cardId')])).rows[0]
         if (!c) throw notFound('Card')
         const now = new Date()
         const next = review(c.reps ? { stability: c.stability, difficulty: c.difficulty, reps: c.reps, lapses: c.lapses, lastReview: c.last_review, due: c.due_at } : newCard(now), grade as Grade, now)
         await t.query(`update education_tutor.cards set stability=$2, difficulty=$3, reps=$4, lapses=$5, last_review=$6, due_at=$7 where id=$1`,
           [params.cardId, next.stability, next.difficulty, next.reps, next.lapses, next.lastReview, next.due])
         if (c.concept_id) await t.query(`insert into education_tutor.evidence (tenant_id, user_id, concept_id, kind, outcome, source_ref) values (platform.current_tenant(), $1, $2, $3, $4, $5)`,
-          [principal.userId, c.concept_id, c.reps > 0 ? 'delayed_check' : 'check', grade >= 3 ? 1 : grade === 2 ? 0.5 : 0, `card:${params.cardId}`])
+          [principal.userId, c.concept_id, c.reps > 0 || c.purpose === 'delayed_check' ? 'delayed_check' : 'check', grade >= 3 ? 1 : grade === 2 ? 0.5 : 0, `card:${params.cardId}`])
         return { dueAt: next.due, stability: next.stability }
       })
     } },
@@ -221,21 +211,7 @@ function routes(d: ModuleDeps): RouteDef[] {
     } },
     { method: 'POST', path: '/courses/:courseId/plan', permission: P.study, handler: async ({ principal, params, body }) => tx(principal, async (t) => {
       await requireEnrolled(t, principal, uuid(params.courseId, 'courseId'))
-      const goal = (await t.query<{ exam_at: Date | null; daily_minutes: number }>('select exam_at, daily_minutes from education_tutor.goals where course_id = $1', [params.courseId])).rows[0]
-      if (!goal) throw badRequest('goal_required', 'Set your exam date and daily study time first')
-      const { concepts, edges } = await courseGraph(t, params.courseId!)
-      const ev = await evidenceFor(t, concepts.map((c) => c.id))
-      const due = (await t.query<{ n: number }>(`select count(*)::int as n from education_tutor.cards where course_id = $1 and due_at < now() + interval '7 days'`, [params.courseId])).rows[0]!.n
-      const planConcepts: PlanConcept[] = concepts.map((c) => {
-        const m = estimate(ev.get(c.id)!)
-        return { id: c.id, name: c.name, estMinutes: c.est_minutes, examWeight: Number(c.exam_weight), pMastery: m.pMastery, mastered: m.state === 'mastered', prerequisites: edges.filter((e) => e.to_concept === c.id).map((e) => e.from_concept) }
-      })
-      const input = { today: new Date(), examAt: goal.exam_at, dailyMinutes: goal.daily_minutes, concepts: planConcepts, reviewMinutesPerDay: Math.ceil((due * 1.5) / 7) }
-      const missed = Number(obj(body).missedMinutes ?? 0)
-      const plan = missed > 0 ? recoverPlan(input, missed) : buildPlan(input)
-      const v = (await t.query<{ v: number }>('select coalesce(max(version), 0)::int + 1 as v from education_tutor.plans where course_id = $1', [params.courseId])).rows[0]!.v
-      await t.query(`insert into education_tutor.plans (tenant_id, user_id, course_id, version, plan) values (platform.current_tenant(), $1, $2, $3, $4)`, [principal.userId, params.courseId, v, JSON.stringify(plan)])
-      return { version: v, ...plan }
+      return generatePlan(t, principal.userId, params.courseId!, { missedMinutes: Number(obj(body).missedMinutes ?? 0) })
     }) },
 
     // ── tutor sessions ──
@@ -252,53 +228,7 @@ function routes(d: ModuleDeps): RouteDef[] {
         return { id: r.rows[0]!.id }
       })
     } },
-    { method: 'POST', path: '/sessions/:sessionId/turns', permission: P.study, handler: async ({ principal, params, body }) => {
-      const b = obj(body)
-      const message = str(b.message, 'message', 8000)
-      // 1. load session context (RLS: only the owner can see it)
-      const ctx = await tx(principal, async (t) => {
-        const s = (await t.query<{ course_id: string; concept_id: string | null; problem: string | null; language: string; state: SessionState }>(
-          'select course_id, concept_id, problem, language, state from education_tutor.sessions where id = $1', [uuid(params.sessionId, 'sessionId')])).rows[0]
-        if (!s) throw notFound('Session')
-        const course = await requireEnrolled(t, principal, s.course_id)
-        let rescue: { id: string; name: string } | null = null
-        let conceptName: string | null = null
-        if (s.concept_id) {
-          conceptName = (await t.query<{ name: string }>('select name from education_tutor.concepts where id = $1', [s.concept_id])).rows[0]?.name ?? null
-          const pre = (await t.query<{ id: string; name: string }>(`select c.id, c.name from education_tutor.concept_edges e join education_tutor.concepts c on c.id = e.from_concept where e.to_concept = $1`, [s.concept_id])).rows
-          const ev = await evidenceFor(t, pre.map((x) => x.id))
-          const order = probeCandidates(pre.map((x) => ({ conceptId: x.id, estimate: estimate(ev.get(x.id)!) as MasteryEstimate })))
-          const first = pre.find((x) => x.id === order[0])
-          if (first) rescue = first
-        }
-        const history = (await t.query<{ role: 'student' | 'tutor'; content: string }>('select role, content from education_tutor.turns where session_id = $1 order by created_at desc limit 12', [params.sessionId])).rows.reverse()
-        return { s, course, rescue, conceptName, history }
-      })
-      // 2. deterministic teaching move + integrity policy
-      const decision = chooseMove(ctx.s.state, { stuck: b.stuck === true, requestFullAnswer: b.requestFullAnswer === true, hasProblem: !!ctx.s.problem }, ctx.course.integrity_mode, ctx.rescue?.id ?? null)
-      // 3. AI via the gateway (provider chosen by routing configuration)
-      const out = await d.ai(principal).run('education.tutor.socratic_turn', {
-        messages: buildSocraticPrompt({ move: decision.move, hintLevel: decision.hintLevel, language: ctx.s.language, courseTitle: ctx.course.title, conceptName: ctx.conceptName,
-          problem: ctx.s.problem, rescueConceptName: decision.move === 'rescue_probe' ? ctx.rescue?.name : null, policyNote: decision.policyNote, history: ctx.history, message }),
-      }, { promptVersion: PROMPT_VERSION })
-      const json = out.json as { segments: Segment[]; assessment: 'correct' | 'partial' | 'incorrect' | 'not_an_attempt'; checkQuestion?: string }
-      // 4. honest labelling: no retrieval in this session yet, so no segment may claim course material
-      const { segments, relabelled } = verifySegments(json.segments.map((s) => ({ ...s, citations: s.citations ?? [] })), new Set())
-      const nextState = { ...advance(ctx.s.state, decision, json.assessment), rescueTarget: decision.move === 'rescue_probe' ? ctx.rescue?.id ?? null : ctx.s.state.rescueTarget }
-      const outcome = evidenceOutcome(json.assessment)
-      // 5. persist turn, state and evidence atomically
-      await tx(principal, async (t) => {
-        await t.query(`insert into education_tutor.turns (tenant_id, user_id, session_id, role, content) values (platform.current_tenant(), $1, $2, 'student', $3)`, [principal.userId, params.sessionId, message])
-        await t.query(`insert into education_tutor.turns (tenant_id, user_id, session_id, role, content, segments, move, hint_level, operation_id) values (platform.current_tenant(), $1, $2, 'tutor', $3, $4, $5, $6, $7)`,
-          [principal.userId, params.sessionId, segments.map((s) => s.text).join('\n\n'), JSON.stringify(segments), decision.move, decision.hintLevel, out.operationId])
-        await t.query('update education_tutor.sessions set state = $2 where id = $1', [params.sessionId, JSON.stringify(nextState)])
-        if (outcome !== null && ctx.s.concept_id) {
-          await t.query(`insert into education_tutor.evidence (tenant_id, user_id, concept_id, kind, outcome, hints_used, source_ref) values (platform.current_tenant(), $1, $2, 'check', $3, $4, $5)`,
-            [principal.userId, ctx.s.concept_id, outcome, decision.hintLevel, `session:${params.sessionId}`])
-        }
-      })
-      return { move: decision.move, hintLevel: decision.hintLevel, policyNote: decision.policyNote ?? null, segments, relabelled, checkQuestion: json.checkQuestion ?? null, assessment: json.assessment }
-    } },
+    ...turnRoutes(d),
   ]
 }
 
@@ -307,14 +237,16 @@ export const manifest: ModuleManifest = {
   vertical: 'education',
   version: '0.1.0',
   owner: 'education-product-team',
-  description: 'AI Personal Tutor: courses, Socratic tutoring, learner profile, practice, spaced revision, planner',
+  description: 'AI Personal Tutor: courses, Socratic tutoring, learner profile, practice, spaced revision, planner, agentic study companion',
   db: { schema: 'education_tutor', migrationsDir: fileURLToPath(new URL('../db/migrations', import.meta.url)) },
   permissions: [
     { key: P.read, description: 'See enrolled courses and their concepts', roles: ['student', 'educator', 'tenant_admin'] },
     { key: P.manage, description: 'Create courses, concepts, items; enrol students', roles: ['educator', 'tenant_admin'] },
     { key: P.study, description: 'Use the tutor, practice, revision and planner (own data only)', roles: ['student', 'educator'] },
   ],
-  routes,
+  routes: (d) => [...routes(d), ...materialRoutes(d), ...diagnosisRoutes(d), ...coachRoutes(d), ...voiceRoutes(d), ...generationRoutes(d), ...assessmentRoutes(d), ...agentRoutes(d), ...studioRoutes(d), ...growthRoutes(d)],
+  jobs: tutorJobs,
+  schedules: SCHEDULES,
   ui: {
     routes: [
       { path: '/app/education/tutor', title: 'Tutor', permission: P.read },
@@ -322,10 +254,10 @@ export const manifest: ModuleManifest = {
     ],
     nav: [{ label: 'Tutor', path: '/app/education/tutor', permission: P.read }],
   },
-  ai: { tasks: TASKS },
+  ai: { tasks: [...TASKS, ...MATERIAL_TASKS, ...DIAGNOSIS_TASKS, ...VOICE_TASKS, ...GENERATION_TASKS, ...ASSESSMENT_TASKS, ...AGENT_TASKS, ...STUDIO_TASKS, ...GROWTH_TASKS] },
   data: {
     stores: [
-      { kind: 'schema', name: 'education_tutor', onRemove: 'export_then_drop', description: 'courses, concepts, items, attempts, evidence, cards, goals, plans, sessions, turns' },
+      { kind: 'schema', name: 'education_tutor', onRemove: 'export_then_drop', description: 'courses, concepts, items, attempts, evidence, cards, goals, plans, sessions, turns, companion profiles/conversations/tasks, studio books/pages/notebooks/annotations, exam papers/questions, hint usage, growth prefs, chapter packages' },
       { kind: 'audit_events', name: 'education.tutor.*', onRemove: 'retain_platform_policy', description: 'audit trail (ids only)' },
       { kind: 'ai_operations', name: 'education.tutor', onRemove: 'retain_platform_policy', description: 'AI metering' },
     ],

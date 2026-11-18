@@ -1,0 +1,12 @@
+{
+  "environment": "eval",
+  "deployments": [
+    {
+      "name": "scripted-tutor",
+      "adapter": "fake",
+      "model": "scripted-tutor",
+      "fakeResponder": "../socratic/fake-tutor.ts",
+      "pricing": { "currency": "INR", "inputPerMTok": 100, "outputPerMTok": 400, "source": "synthetic (fake adapter)" }
+    }
+  ]
+}

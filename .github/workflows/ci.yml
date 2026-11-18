@@ -32,6 +32,13 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
+      - name: PostgreSQL 17 client tools (pg_dump/pg_restore for the backup/restore drill in npm test)
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -q && sudo apt-get install -y -q postgresql-client-17
+          echo "PG_BIN=/usr/lib/postgresql/17/bin" >> "$GITHUB_ENV"
       - name: Lint (incl. secret scan, module READMEs, generated registries)
         run: npm run lint
       - name: Dependency boundaries (M1–M10, layers, vendor SDKs, model ids)
@@ -40,8 +47,42 @@ jobs:
         run: npm run typecheck
       - name: Tests (unit, integration, isolation, removal matrix, adapter conformance - recorded)
         run: npm test
+      - name: Preflight (test mode) against a freshly migrated database
+        env:
+          PLATFORM_ENV: test
+          DATABASE_URL: postgres://platform_owner@127.0.0.1:5432/preflight
+          APP_DATABASE_URL: postgres://platform_app@127.0.0.1:5432/preflight
+          SYSTEM_DATABASE_URL: postgres://platform_system@127.0.0.1:5432/preflight
+        run: |
+          psql postgres://platform_owner@127.0.0.1:5432/postgres -c 'create database preflight'
+          export PLATFORM_MASTER_KEY=$(node -e "console.log(require('crypto').randomBytes(32).toString('base64'))")
+          node apps/api/src/cli.ts migrate
+          node tooling/preflight.ts
+          node tooling/preflight.ts --json > preflight.json
+      - name: Preflight production rules reject the CI configuration (fail-closed self-test)
+        env:
+          DATABASE_URL: postgres://platform_owner@127.0.0.1:5432/preflight
+          APP_DATABASE_URL: postgres://platform_app@127.0.0.1:5432/preflight
+        run: |
+          export PLATFORM_MASTER_KEY=$(node -e "console.log(require('crypto').randomBytes(32).toString('base64'))")
+          if node tooling/preflight.ts --production; then echo "production preflight unexpectedly passed"; exit 1; fi
       - name: Dependency audit
         run: npm audit --audit-level=high
+
+  images:
+    # builds (does not push) the API and worker images; they have not been built anywhere else yet
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build api image
+        run: docker build -f deploy/Dockerfile --target api -t ekbharat/api:ci .
+      - name: Build worker image
+        run: docker build -f deploy/Dockerfile --target worker -t ekbharat/worker:ci .
+      - name: Images run as non-root
+        run: test "$(docker run --rm --entrypoint id ekbharat/api:ci -u)" != "0"
+      - name: Validate compose file
+        run: |
+          OWNER_DB_PASSWORD=x APP_DB_PASSWORD=x SYSTEM_DB_PASSWORD=x PLATFORM_MASTER_KEY=x docker compose -f deploy/docker-compose.yml config -q
 
   live-conformance:
     if: github.event_name == 'schedule'

@@ -37,7 +37,7 @@ const LAYERS: Record<string, string[]> = {
   documents: ['core', 'observability', 'tenancy-db', 'audit'],
   retrieval: ['core', 'observability', 'tenancy-db', 'documents', 'ai-gateway'],
   'ai-evals': ['core', 'observability', 'tenancy-db', 'ai-gateway', 'ai-adapter-kit', 'math-client'],
-  contracts: ['core', 'tenancy-db', 'jobs', 'events', 'ai-gateway', 'documents', 'retrieval'],
+  contracts: ['core', 'tenancy-db', 'jobs', 'events', 'ai-gateway', 'documents', 'retrieval', 'math-client', 'field-crypto'],
   'module-runtime': ['core', 'observability', 'tenancy-db', 'identity', 'audit', 'jobs', 'events', 'ai-gateway', 'contracts', 'documents', 'retrieval', 'field-crypto', 'math-client'],
   testing: ['*'],
 }

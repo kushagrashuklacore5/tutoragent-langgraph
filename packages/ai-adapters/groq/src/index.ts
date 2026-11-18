@@ -1,5 +1,5 @@
 import {
-  openAiGenerate, openAiListModels, openAiStream, openAiTest,
+  openAiGenerate, openAiListModels, openAiStream, openAiTest, openAiTranscribe,
   type OpenAiStyleOptions, type ProviderAdapter,
 } from '@platform/ai-adapter-kit'
 
@@ -7,14 +7,14 @@ import {
  * Groq adapter. Groq exposes an OpenAI-style API; this adapter keeps Groq's own defaults
  * (base URL, usage reported in `x_groq` on streams, no embeddings) independent of the OpenAI adapter.
  */
-const o: OpenAiStyleOptions = { provider: 'Groq', maxTokensField: 'max_completion_tokens', streamUsage: false, reasoningEffort: true, requiresKey: true }
+const o: OpenAiStyleOptions = { provider: 'Groq', maxTokensField: 'max_completion_tokens', streamUsage: false, reasoningEffort: true, requiresKey: true, strictSchema: false }
 
 export const adapter: ProviderAdapter = {
   descriptor: {
     type: 'groq',
     version: '1.0.0',
     displayName: 'Groq',
-    operations: ['generate', 'stream'],
+    operations: ['generate', 'stream', 'transcribe'],
     defaultBaseUrl: 'https://api.groq.com/openai/v1',
     requiresApiKey: true,
     supportsDiscovery: true,
@@ -24,5 +24,6 @@ export const adapter: ProviderAdapter = {
   listModels: (c) => openAiListModels(c, o),
   generate: (c, m, r, s) => openAiGenerate(c, m, r, o, s),
   stream: (c, m, r, s) => openAiStream(c, m, r, o, s),
+  transcribe: (c, m, r, s) => openAiTranscribe(c, m, r, o, s),
 }
 export default adapter

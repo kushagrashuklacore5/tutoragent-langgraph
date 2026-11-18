@@ -81,5 +81,23 @@ export async function probeDeployment(adapter: ProviderAdapter, conn: ResolvedCo
     })
     if (ok) v.operations.push('embed')
   }
+  if (declared.operations.includes('transcribe') && adapter.transcribe) {
+    const ok = await run('transcribe', async () => {
+      const r = await adapter.transcribe!(conn, modelId, { audio: silentWav(0.5), mimeType: 'audio/wav', filename: 'probe.wav' })
+      if (typeof r.text !== 'string') throw new Error('no transcript')
+    })
+    if (ok) v.operations.push('transcribe')
+  }
   return { verified: v, checks }
+}
+
+/** A short 16 kHz mono PCM WAV of silence (probe input; no user audio is ever used for probes). */
+export function silentWav(seconds: number): Buffer {
+  const rate = 16000
+  const samples = Math.round(rate * seconds)
+  const b = Buffer.alloc(44 + samples * 2)
+  b.write('RIFF', 0); b.writeUInt32LE(36 + samples * 2, 4); b.write('WAVE', 8); b.write('fmt ', 12)
+  b.writeUInt32LE(16, 16); b.writeUInt16LE(1, 20); b.writeUInt16LE(1, 22); b.writeUInt32LE(rate, 24); b.writeUInt32LE(rate * 2, 28); b.writeUInt16LE(2, 32); b.writeUInt16LE(16, 34)
+  b.write('data', 36); b.writeUInt32LE(samples * 2, 40)
+  return b
 }

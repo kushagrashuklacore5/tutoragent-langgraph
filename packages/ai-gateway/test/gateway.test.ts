@@ -331,3 +331,34 @@ describe('discovery, probes, budgets, task registry', () => {
     assert.ok(u.every((row) => typeof (row as { calls: number }).calls === 'number'))
   })
 })
+
+describe('provider-advised rate limits', () => {
+  test('waits the advised time and succeeds on the same deployment; a long advisory fails fast; the breaker stays closed', async () => {
+    let n = 0
+    const paced = createFakeAdapter('fake-paced', {
+      respond: (req, model) => {
+        n++
+        if (model === 'paced' && n === 1) throw new GatewayError('rate_limited', 'try again in 150ms', { retryAfterMs: 150 })
+        if (model === 'slow-window') throw new GatewayError('rate_limited', 'try again in 60s', { retryAfterMs: 60_000 })
+        return { text: `ok ${model}`, toolCalls: [], finish: 'stop', usage: { inputTokens: 1, outputTokens: 1, cachedInputTokens: null, reasoningTokens: null } }
+      },
+    })
+    const g = createGateway({ system: t.system, keyManager: KM, environment: 'test', adapters: { ...ADAPTERS, 'fake-paced': paced }, tasks: (() => { const r = new TaskRegistry(); TASKS.forEach((x) => r.register(x)); return r })(), retryDelayMs: 1 })
+    const d = await deploy('fake-paced', 'paced', CHAT, VERIFIED, {}, g)
+    await g.admin.setRoute(admin, { tenantId: A, target: 'task:hello.chat', candidates: [{ deploymentId: d.id }] })
+    const t0 = performance.now()
+    const r = await g.run('hello.chat', { messages: [{ role: 'user', content: 'x' }] }, { tenantId: A })
+    assert.equal(r.text, 'ok paced')
+    assert.equal(r.route.attempt, 2)
+    assert.ok(performance.now() - t0 >= 140, 'honoured the advised wait')
+
+    const s = await deploy('fake-paced', 'slow-window', CHAT, VERIFIED, {}, g)
+    await g.admin.setRoute(admin, { tenantId: A, target: 'task:hello.chat', candidates: [{ deploymentId: s.id }] })
+    const t1 = performance.now()
+    await assert.rejects(g.run('hello.chat', { messages: [{ role: 'user', content: 'x' }] }, { tenantId: A }), (e: GatewayError) => e.kind === 'rate_limited')
+    assert.ok(performance.now() - t1 < 5000, 'did not stall for 60 s')
+    // rate limits never open the circuit: the paced deployment still serves after repeated 429s
+    await g.admin.setRoute(admin, { tenantId: A, target: 'task:hello.chat', candidates: [{ deploymentId: d.id }] })
+    assert.equal((await g.run('hello.chat', { messages: [{ role: 'user', content: 'x' }] }, { tenantId: A })).text, 'ok paced')
+  })
+})

@@ -6,6 +6,7 @@ export * from './tasks.ts'
 export * from './capabilities.ts'
 export * from './policy.ts'
 export * from './secrets.ts'
+export * from './kms/index.ts'
 export { costMicros } from './metering.ts'
 export type { Pricing, RouteCandidate } from './store.ts'
 export { ADAPTERS } from './adapters.generated.ts'
@@ -17,3 +18,4 @@ export const aiGatewayMigrations: MigrationSet = {
   schema: 'platform',
   dir: fileURLToPath(new URL('../migrations', import.meta.url)),
 }
+export { silentWav } from './probes.ts'

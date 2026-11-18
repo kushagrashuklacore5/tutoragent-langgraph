@@ -1,7 +1,8 @@
+import { randomBytes } from 'node:crypto'
 import { GatewayError } from './errors.ts'
 import { ensureOk, joinUrl, sseData } from './http.ts'
 import { timed, type ConnectionTestResult, type ResolvedConnection } from './adapter.ts'
-import type { DiscoveredModel, EmbedRequest, EmbedResult, FinishReason, GenerateRequest, GenerateResult, Message, StreamEvent, ToolCall, Usage } from './types.ts'
+import type { DiscoveredModel, EmbedRequest, EmbedResult, FinishReason, GenerateRequest, GenerateResult, Message, StreamEvent, ToolCall, TranscribeRequest, TranscribeResult, Usage } from './types.ts'
 
 /**
  * Shared implementation of the OpenAI-style chat-completions protocol. Used *inside* the `openai`,
@@ -18,6 +19,12 @@ export interface OpenAiStyleOptions {
   reasoningEffort: boolean
   /** whether an API key is required (local servers may not need one) */
   requiresKey: boolean
+  /**
+   * send json_schema with strict:true (default). Strict mode on some providers (e.g. Groq) requires
+   * every object to be closed and every property required, which task schemas with optional fields
+   * are not; best-effort mode is used there and the gateway still validates every reply against the schema.
+   */
+  strictSchema?: boolean
 }
 
 function headers(conn: ResolvedConnection, o: OpenAiStyleOptions): Record<string, string> {
@@ -65,7 +72,7 @@ export function buildChatBody(model: string, req: GenerateRequest, o: OpenAiStyl
   }
   if (req.responseFormat?.type === 'json') {
     body.response_format = req.responseFormat.mode === 'json_schema'
-      ? { type: 'json_schema', json_schema: { name: req.responseFormat.name, schema: req.responseFormat.schema, strict: true } }
+      ? { type: 'json_schema', json_schema: { name: req.responseFormat.name, schema: req.responseFormat.schema, strict: o.strictSchema !== false } }
       : { type: 'json_object' }
   }
   if (stream) {
@@ -179,4 +186,31 @@ export async function openAiTest(conn: ResolvedConnection, o: OpenAiStyleOptions
     return { ok: false, latencyMs: r.ms, error: { kind: e.kind ?? 'network', message: e.message } }
   }
   return { ok: true, latencyMs: r.ms, modelCount: r.value?.length }
+}
+
+/** Encode a multipart/form-data body (fields + one file) without dependencies. */
+export function multipart(fields: Record<string, string | undefined>, file: { name: string; filename: string; mimeType: string; data: Buffer }): { body: Buffer; contentType: string } {
+  const boundary = `----ebform${randomBytes(12).toString('hex')}`
+  const CRLF = '\r\n'
+  const parts: Buffer[] = []
+  for (const [k, v] of Object.entries(fields)) {
+    if (v === undefined) continue
+    parts.push(Buffer.from(`--${boundary}${CRLF}Content-Disposition: form-data; name="${k}"${CRLF}${CRLF}${v}${CRLF}`))
+  }
+  const safeName = file.filename.replace(/["\r\n]/g, '_')
+  parts.push(Buffer.from(`--${boundary}${CRLF}Content-Disposition: form-data; name="${file.name}"; filename="${safeName}"${CRLF}Content-Type: ${file.mimeType}${CRLF}${CRLF}`), file.data, Buffer.from(`${CRLF}--${boundary}--${CRLF}`))
+  return { body: Buffer.concat(parts), contentType: `multipart/form-data; boundary=${boundary}` }
+}
+
+/** OpenAI-style `/audio/transcriptions` (OpenAI, Groq Whisper, compatible servers). */
+export async function openAiTranscribe(conn: ResolvedConnection, model: string, req: TranscribeRequest, o: OpenAiStyleOptions, signal?: AbortSignal): Promise<TranscribeResult> {
+  const ext = /webm/.test(req.mimeType) ? 'webm' : /ogg/.test(req.mimeType) ? 'ogg' : /wav/.test(req.mimeType) ? 'wav' : /mp4|m4a|aac/.test(req.mimeType) ? 'm4a' : /mpeg|mp3/.test(req.mimeType) ? 'mp3' : 'webm'
+  const form = multipart({ model, language: req.language, prompt: req.prompt?.slice(0, 800), response_format: 'verbose_json', temperature: '0' },
+    { name: 'file', filename: req.filename ?? `audio.${ext}`, mimeType: req.mimeType, data: req.audio })
+  const h = headers(conn, o)
+  const res = await conn.http.request({ method: 'POST', url: joinUrl(conn.baseUrl, 'audio/transcriptions'), headers: { ...h, 'content-type': form.contentType }, body: form.body, signal, timeoutMs: conn.timeoutMs })
+  await ensureOk(res, o.provider)
+  const j = await res.json<{ text?: string; language?: string; duration?: number }>()
+  if (typeof j.text !== 'string') throw new GatewayError('provider_error', `${o.provider}: transcription had no text`)
+  return { text: j.text.trim(), language: j.language ?? null, durationSec: typeof j.duration === 'number' ? j.duration : null, usage: { inputTokens: 0, outputTokens: 0, cachedInputTokens: null, reasoningTokens: null } }
 }

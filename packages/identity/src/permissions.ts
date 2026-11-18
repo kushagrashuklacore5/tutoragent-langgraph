@@ -56,6 +56,7 @@ export function definePlatformPermissions(reg: PermissionRegistry): void {
   p('platform:session.read', 'Read own session and profile', ['student', 'educator', 'tenant_admin'])
   p('platform:members.read', 'List tenant members', ['educator', 'tenant_admin'])
   p('platform:members.manage', 'Invite, change roles of and disable members', ['tenant_admin'])
+  p('platform:sso.manage', 'Configure the tenant identity provider (OIDC single sign-on)', ['tenant_admin'])
   p('platform:audit.read', 'Read the tenant audit log', ['tenant_admin'])
   p('platform:ai.usage.read', 'Read AI usage and cost for the tenant', ['tenant_admin'])
   p('platform:ai.connections.tenant', 'Manage tenant-scoped (BYOK) AI connections, if enabled', ['tenant_admin'])

@@ -3,9 +3,22 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "exports": { ".": "./src/app.ts" },
+  "exports": {
+    ".": "./src/app.ts"
+  },
   "dependencies": {
-    "@platform/core": "*", "@platform/observability": "*", "@platform/tenancy-db": "*", "@platform/identity": "*", "@platform/audit": "*",
-    "@platform/jobs": "*", "@platform/events": "*", "@platform/ai-gateway": "*", "@platform/contracts": "*", "@platform/module-runtime": "*"
+    "@platform/core": "*",
+    "@platform/observability": "*",
+    "@platform/tenancy-db": "*",
+    "@platform/identity": "*",
+    "@platform/audit": "*",
+    "@platform/jobs": "*",
+    "@platform/events": "*",
+    "@platform/ai-gateway": "*",
+    "@platform/contracts": "*",
+    "@platform/module-runtime": "*",
+    "@platform/documents": "*",
+    "@platform/retrieval": "*",
+    "@platform/math-client": "*"
   }
 }

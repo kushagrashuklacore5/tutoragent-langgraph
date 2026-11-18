@@ -34,3 +34,4 @@ export async function setupTestDb(extra: MigrationSet[] = []): Promise<PlatformT
     },
   }
 }
+export * from './fixtures.ts'

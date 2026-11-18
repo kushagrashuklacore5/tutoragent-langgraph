@@ -9,6 +9,8 @@ export interface HttpRoute {
   /** permission key, or 'public' for unauthenticated endpoints */
   permission: string
   moduleId: string | null
+  /** accept a raw body (uploads) up to maxBytes instead of JSON */
+  rawBody?: { maxBytes: number }
   handler: (req: ParsedRequest) => Promise<unknown>
 }
 
@@ -30,6 +32,19 @@ function compile(path: string): { re: RegExp; keys: string[] } {
   const keys: string[] = []
   const re = new RegExp('^' + path.replace(/\/+$/, '').replace(/:([a-zA-Z_]+)/g, (_, k: string) => { keys.push(k); return '([^/]+)' }) + '/?$')
   return { re, keys }
+}
+
+async function readRaw(req: IncomingMessage, maxBytes: number): Promise<Buffer> {
+  const declared = Number(req.headers['content-length'] ?? 0)
+  if (declared > maxBytes) throw new AppError('payload_too_large', 'File too large', { status: 413 })
+  const chunks: Buffer[] = []
+  let size = 0
+  for await (const c of req) {
+    size += (c as Buffer).length
+    if (size > maxBytes) throw new AppError('payload_too_large', 'File too large', { status: 413 })
+    chunks.push(c as Buffer)
+  }
+  return Buffer.concat(chunks)
 }
 
 async function readBody(req: IncomingMessage): Promise<unknown> {
@@ -104,7 +119,7 @@ export function createRouter(routes: HttpRoute[], opts: { allowedOrigins: string
         match.keys.forEach((k, i) => (params[k] = decodeURIComponent(m[i + 1]!)))
         const out = await match.handler({
           raw: req, res, method: req.method!, path: url.pathname, params, query: url.searchParams,
-          body: await readBody(req), signal: ac.signal, cookies: parseCookies(req.headers.cookie),
+          body: match.rawBody ? await readRaw(req, match.rawBody.maxBytes) : await readBody(req), signal: ac.signal, cookies: parseCookies(req.headers.cookie),
         })
         if (res.writableEnded) return
         if (isStream(out)) {

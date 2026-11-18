@@ -54,6 +54,24 @@ export function renderPrometheus(): string {
 }
 
 export function resetMetrics(): void {
+  registryStart = Date.now()
   counters.clear()
   hists.clear()
+}
+
+/** Histogram bucket upper bounds (ms), shared by every histogram. */
+export const HISTOGRAM_BOUNDS: readonly number[] = BUCKETS
+let registryStart = Date.now()
+
+/** Point-in-time copy of the registry (cumulative since `startMs`), for push exporters. */
+export function metricsSnapshot(): {
+  startMs: number
+  counters: { name: string; labels: Labels; value: number }[]
+  histograms: { name: string; labels: Labels; count: number; sum: number; cumulativeBucketCounts: number[] }[]
+} {
+  return {
+    startMs: registryStart,
+    counters: [...counters.values()].map((c) => ({ name: c.name, labels: { ...c.labels }, value: c.value })),
+    histograms: [...hists.values()].map((h) => ({ name: h.name, labels: { ...h.labels }, count: h.count, sum: h.sum, cumulativeBucketCounts: [...h.counts] })),
+  }
 }

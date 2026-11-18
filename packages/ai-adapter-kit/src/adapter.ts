@@ -1,5 +1,5 @@
 import type { HttpClient } from './http.ts'
-import type { DiscoveredModel, EmbedRequest, EmbedResult, GenerateRequest, GenerateResult, Operation, StreamEvent } from './types.ts'
+import type { DiscoveredModel, EmbedRequest, EmbedResult, GenerateRequest, GenerateResult, Operation, StreamEvent, TranscribeRequest, TranscribeResult } from './types.ts'
 
 /** A connection after the gateway resolved its secret and network policy. Never logged or persisted. */
 export interface ResolvedConnection {
@@ -42,6 +42,7 @@ export interface ProviderAdapter {
   generate(conn: ResolvedConnection, model: string, req: GenerateRequest, signal?: AbortSignal): Promise<GenerateResult>
   stream(conn: ResolvedConnection, model: string, req: GenerateRequest, signal?: AbortSignal): AsyncIterable<StreamEvent>
   embed?(conn: ResolvedConnection, model: string, req: EmbedRequest, signal?: AbortSignal): Promise<EmbedResult>
+  transcribe?(conn: ResolvedConnection, model: string, req: TranscribeRequest, signal?: AbortSignal): Promise<TranscribeResult>
 }
 
 /** Small helper so adapters can implement testConnection via listModels or a cheap call. */

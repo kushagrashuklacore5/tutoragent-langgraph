@@ -4,7 +4,7 @@ import { lookup as dnsLookup, type LookupAddress } from 'node:dns'
 import { isIP } from 'node:net'
 import type { IncomingMessage } from 'node:http'
 import { redactString } from '@platform/observability'
-import { GatewayError, classifyHttpError } from './errors.ts'
+import { GatewayError, classifyHttpError, retryAfterMs } from './errors.ts'
 import { checkBaseUrl, isPrivateAddress, type DestinationPolicy } from './net-guard.ts'
 
 export interface HttpRequest {
@@ -41,17 +41,25 @@ const defaultResolver: Resolver = (host) =>
 export function createHttpClient(policy: DestinationPolicy, opts: { resolver?: Resolver; defaultTimeoutMs?: number } = {}): HttpClient {
   const resolver = opts.resolver ?? defaultResolver
 
-  const guardedLookup = (hostname: string, _o: unknown, cb: (err: Error | null, address: string, family: number) => void) => {
+  /**
+   * Node calls the lookup hook in two shapes: `(err, address, family)` normally, and — with
+   * `{ all: true }`, which the HTTPS agent uses for happy-eyeballs (autoSelectFamily, default since
+   * Node 20) — `(err, addresses[])`. Answering the second shape with a single address made every
+   * hostname-based provider fail with ERR_INVALID_IP_ADDRESS. Every address is still policy-checked.
+   */
+  const guardedLookup = (hostname: string, o: unknown, cb: (err: Error | null, address: string | LookupAddress[], family?: number) => void) => {
+    const all = typeof o === 'object' && o !== null && (o as { all?: boolean }).all === true
     const literal = isIP(hostname)
     const p = literal ? Promise.resolve([{ address: hostname, family: literal }]) : resolver(hostname)
     p.then((addrs) => {
       const first = addrs[0]
-      if (!first) return cb(new Error(`no address for ${hostname}`), '', 0)
+      if (!first) return cb(new Error(`no address for ${hostname}`), all ? [] : '', 0)
       if (!policy.allowPrivateNetwork && addrs.some((a) => isPrivateAddress(a.address))) {
-        return cb(Object.assign(new Error('destination resolves to a blocked address'), { blocked: true }), '', 0)
+        return cb(Object.assign(new Error('destination resolves to a blocked address'), { blocked: true }), all ? [] : '', 0)
       }
-      cb(null, first.address, first.family)
-    }, (e: Error) => cb(e, '', 0))
+      if (all) cb(null, addrs.map((a) => ({ address: a.address, family: a.family })))
+      else cb(null, first.address, first.family)
+    }, (e: Error) => cb(e, all ? [] : '', 0))
   }
 
   return {
@@ -60,7 +68,7 @@ export function createHttpClient(policy: DestinationPolicy, opts: { resolver?: R
       if (!check.ok) return Promise.reject(new GatewayError('blocked_destination', check.reason))
       const url = check.url
       const timeoutMs = req.timeoutMs ?? opts.defaultTimeoutMs ?? 60_000
-      const body = req.body === undefined ? undefined : typeof req.body === 'string' ? req.body : JSON.stringify(req.body)
+      const body = req.body === undefined ? undefined : typeof req.body === 'string' || Buffer.isBuffer(req.body) ? req.body : JSON.stringify(req.body)
       const lib = url.protocol === 'https:' ? https : http
       return new Promise<HttpResponse>((resolve, reject) => {
         if (req.signal?.aborted) return reject(new GatewayError('cancelled', 'request cancelled'))
@@ -145,7 +153,7 @@ export async function ensureOk(res: HttpResponse, provider: string): Promise<voi
   if (res.status >= 200 && res.status < 300) return
   const text = await res.text().catch(() => '')
   const kind = classifyHttpError(res.status, text)
-  throw new GatewayError(kind, `${provider} HTTP ${res.status}: ${redactString(text).slice(0, 300)}`, { status: res.status })
+  throw new GatewayError(kind, `${provider} HTTP ${res.status}: ${redactString(text).slice(0, 300)}`, { status: res.status, retryAfterMs: kind === 'rate_limited' || kind === 'overloaded' ? retryAfterMs(text, res.headers['retry-after']) : undefined })
 }
 
 /** Parse a Server-Sent Events line stream into `data:` payloads (ignores comments, joins multi-line data). */

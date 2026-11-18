@@ -43,8 +43,20 @@ export function buildBody(model: string, req: GenerateRequest, stream: boolean):
     if (req.toolChoice === 'required') throw new GatewayError('unsupported_capability', 'Ollama: required tool choice is not supported')
     if (req.toolChoice !== 'none') body.tools = req.tools.map((t) => ({ type: 'function', function: { name: t.name, description: t.description, parameters: t.parameters } }))
   }
-  if (req.reasoning) body.think = req.reasoning === 'off' ? false : req.reasoning === 'medium' ? true : req.reasoning
+  if (req.reasoning) body.think = thinkValue(model, req.reasoning)
   return body
+}
+
+/**
+ * Ollama's `think` takes graded levels ("low" | "medium" | "high") only for gpt-oss models; every other
+ * thinking model (qwen3, deepseek-r1, …) takes a boolean and treats any string as "think". Sending "low"
+ * to qwen3 made it reason at length and exhaust the output budget before the answer (truncated JSON).
+ * For boolean models: off/low → no thinking, medium/high → thinking.
+ */
+export function thinkValue(model: string, reasoning: 'off' | 'low' | 'medium' | 'high'): boolean | string {
+  if (reasoning === 'off') return false
+  if (/^gpt-oss(:|$)/i.test(model)) return reasoning
+  return reasoning !== 'low'
 }
 
 /** Some thinking models inline their reasoning in <think> tags; never surface it as answer text. */
@@ -114,8 +126,12 @@ async function* stream(conn: ResolvedConnection, model: string, req: GenerateReq
   yield { t: 'finish', finish }
 }
 
+export const EMBED_CONTEXT = 2048
+
 async function embed(conn: ResolvedConnection, model: string, req: EmbedRequest, signal?: AbortSignal): Promise<EmbedResult> {
-  const body: Record<string, unknown> = { model, input: req.inputs }
+  // Bounded context for embeddings: chunks are short (≤ ~700 tokens), and without num_ctx Ollama loads the model with
+  // its full default window, which needs a large buffer (live: 470 MB allocation failures on an 8 GB machine).
+  const body: Record<string, unknown> = { model, input: req.inputs, truncate: true, options: { num_ctx: EMBED_CONTEXT } }
   if (req.dimensions) body.dimensions = req.dimensions
   const res = await conn.http.request({ method: 'POST', url: joinUrl(conn.baseUrl, 'api/embed'), headers: authHeaders(conn), body, signal, timeoutMs: conn.timeoutMs })
   await ensureOk(res, 'Ollama')

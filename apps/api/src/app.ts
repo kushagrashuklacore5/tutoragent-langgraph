@@ -2,12 +2,16 @@ import { AppError, badRequest, forbidden, unauthorized, type Environment } from 
 import { renderPrometheus } from '@platform/observability'
 import type { Database } from '@platform/tenancy-db'
 import type { SystemDatabase } from '@platform/tenancy-db/system'
-import { createIdentityService, type AuthContext, type MailTransport } from '@platform/identity'
+import { createIdentityService, createRateLimiter, createSsoService, type AuthContext, type IdpConfigInput, type MailTransport, type OidcClientOptions, type SecretSealer } from '@platform/identity'
 import { listAudit } from '@platform/audit'
-import { ADAPTERS, createGateway, type Actor, type Gateway, type KeyManager } from '@platform/ai-gateway'
-import type { ModuleManifest, Principal } from '@platform/contracts'
+import { ADAPTERS, createGateway, type Actor, type DataPolicy, type Gateway, type KeyManager } from '@platform/ai-gateway'
+import type { MathChecker, ModuleManifest, Principal } from '@platform/contracts'
 import type { ProviderAdapter } from '@platform/ai-adapter-kit'
 import { buildPlatform, type Platform } from '@platform/module-runtime'
+import { createFieldCrypto } from '@platform/module-runtime'
+import { createDocumentService, type ObjectStore, type Scanner } from '@platform/documents'
+import { createRetrieval, type RankingConfig } from '@platform/retrieval'
+import { enqueue } from '@platform/jobs'
 import { createRouter, type HttpRoute, type ParsedRequest } from './http.ts'
 
 export interface AppOptions {
@@ -24,6 +28,12 @@ export interface AppOptions {
   metricsToken?: string
   /** cache for per-tenant module enablement (ms); 0 disables */
   moduleCacheMs?: number
+  /** institution SSO (OIDC). SSO routes are mounted only when the host provides a SecretSealer. */
+  sso?: { sealer: SecretSealer; redirectUri?: string; oidc?: OidcClientOptions; startsPerIpPerMinute?: number }
+  /** document upload + retrieval (Ask My Notes); omitted = feature off */
+  documents?: { store: ObjectStore; scanner: Scanner; embeddingDimensions?: number; ranking?: Partial<RankingConfig> }
+  /** deterministic maths checker (math-solver service); omitted = numeric claims stay unverified */
+  math?: MathChecker
 }
 
 const COOKIE = 'ebs'
@@ -33,7 +43,11 @@ type SetRoute = Parameters<Gateway['admin']['setRoute']>[1]
 /** Build the HTTP application from platform services + enabled modules. No I/O happens until requests arrive. */
 export function createApp(o: AppOptions) {
   let gateway: Gateway
-  const platform: Platform = buildPlatform(o.modules, { db: o.db, gateway: () => gateway })
+  // documents + retrieval are enabled only when the host provides an object store and a malware scanner
+  const documents = o.documents ? createDocumentService({ db: o.db, system: o.system, store: o.documents.store, scanner: o.documents.scanner, enqueue: (tx, type, payload, opts) => enqueue(tx, type, payload, opts) }) : undefined
+  const retrieval = o.documents ? createRetrieval({ db: o.db, system: o.system, gateway: () => gateway, ranking: o.documents.ranking }) : undefined
+  const platform: Platform = buildPlatform(o.modules, { db: o.db, gateway: () => gateway, documents, retrieval, embeddingDimensions: o.documents?.embeddingDimensions, math: o.math,
+    crypto: createFieldCrypto({ system: o.system, keyManager: o.keyManager }) }) // field encryption at rest (packages/field-crypto)
   gateway = createGateway({ system: o.system, keyManager: o.keyManager, environment: o.env, adapters: o.adapters ?? ADAPTERS, tasks: platform.tasks })
   const identity = createIdentityService({ system: o.system, db: o.db, mail: o.mail, publicBaseUrl: o.publicBaseUrl })
 
@@ -105,6 +119,38 @@ export function createApp(o: AppOptions) {
       await identity.logout(h?.startsWith('Bearer ') ? h.slice(7) : req.cookies[COOKIE] ?? '')
       req.res.setHeader('set-cookie', `${COOKIE}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`)
     }),
+    // institution SSO (OIDC authorization code + PKCE); see packages/identity/src/sso.ts
+    ...(() => {
+      if (!o.sso) return []
+      const sso = createSsoService({ system: o.system, db: o.db, sealer: o.sso.sealer, publicBaseUrl: o.publicBaseUrl, redirectUri: o.sso.redirectUri, oidc: o.sso.oidc })
+      const limiter = createRateLimiter({ limit: o.sso.startsPerIpPerMinute ?? 30, windowMs: 60_000 })
+      const BINDER = 'ebs_sso'
+      const secure = o.publicBaseUrl.startsWith('https') ? '; Secure' : ''
+      const redirect = (req: ParsedRequest, location: string, cookies: string[] = []) => {
+        if (cookies.length) req.res.setHeader('set-cookie', cookies)
+        req.res.writeHead(302, { location }).end()
+      }
+      const limited = (req: ParsedRequest, kind: string) => !limiter.take(`${kind}:${req.raw.socket.remoteAddress ?? ''}`)
+      const rateLimitedUrl = `${o.publicBaseUrl.replace(/\/$/, '')}/auth/sso-error?code=rate_limited`
+      return [
+        pub('GET', '/api/auth/sso/:tenantSlug/start', async (req) => {
+          if (limited(req, 'start')) return redirect(req, rateLimitedUrl)
+          const r = await sso.start({ tenantSlug: req.params.tenantSlug!, returnTo: req.query.get('returnTo') })
+          if (r.kind === 'error') return redirect(req, r.location)
+          redirect(req, r.location, [`${BINDER}=${r.binder}; HttpOnly; SameSite=Lax; Path=/api/auth/sso; Max-Age=${r.binderMaxAgeSec}${secure}`])
+        }),
+        pub('GET', '/api/auth/sso/callback', async (req) => {
+          const clear = `${BINDER}=; HttpOnly; SameSite=Lax; Path=/api/auth/sso; Max-Age=0${secure}`
+          if (limited(req, 'callback')) return redirect(req, rateLimitedUrl, [clear])
+          const r = await sso.callback({ state: req.query.get('state'), code: req.query.get('code'), error: req.query.get('error'), binder: req.cookies[BINDER] })
+          if (r.kind !== 'session') return redirect(req, r.location, [clear])
+          redirect(req, r.location, [clear, `${COOKIE}=${r.sessionToken}; HttpOnly; SameSite=Lax; Path=/; Expires=${r.expiresAt.toUTCString()}${secure}`])
+        }),
+        secured('GET', '/api/admin/sso', 'platform:sso.manage', null, async (_r, a) => ({ config: await sso.getConfig(a) })),
+        secured('PUT', '/api/admin/sso', 'platform:sso.manage', null, async (req, a) => ({ config: await sso.setConfig(a, body<IdpConfigInput>(req)) })),
+        secured('POST', '/api/admin/sso/test', 'platform:sso.manage', null, async (_r, a) => sso.testConfig(a)),
+      ]
+    })(),
     secured('GET', '/api/me', 'platform:session.read', null, async (_r, a) => ({ userId: a.userId, tenantId: a.tenantId, email: a.email, roles: a.roles, isPlatformAdmin: a.isPlatformAdmin })),
     secured('GET', '/api/platform/modules', 'platform:session.read', null, async (_r, a) => {
       const visible = (perm: string) => platform.permissions.allows(a, perm)
@@ -131,6 +177,7 @@ export function createApp(o: AppOptions) {
     secured('POST', '/api/admin/ai/connections/:id/test', 'platform:ai.admin', null, async (req, a) => gateway.admin.testConnection(actorOf(a), req.params.id!)),
     secured('POST', '/api/admin/ai/connections/:id/discover', 'platform:ai.admin', null, async (req, a) => gateway.admin.discoverModels(actorOf(a), req.params.id!)),
     secured('POST', '/api/admin/ai/connections/:id/rotate-key', 'platform:ai.admin', null, async (req, a) => gateway.admin.rotateKey(actorOf(a), req.params.id!, body<{ apiKey: string }>(req).apiKey)),
+    secured('PUT', '/api/admin/ai/connections/:id/data-policy', 'platform:ai.admin', null, async (req, a) => gateway.admin.setDataPolicy(actorOf(a), req.params.id!, body<{ dataPolicy: DataPolicy }>(req).dataPolicy)),
     secured('POST', '/api/admin/ai/connections/:id/enabled', 'platform:ai.admin', null, async (req, a) => gateway.admin.setConnectionEnabled(actorOf(a), req.params.id!, !!body<{ enabled: boolean }>(req).enabled)),
     secured('POST', '/api/admin/ai/models/approve', 'platform:ai.admin', null, async (req, a) => gateway.admin.approveModel(actorOf(a), body(req))),
     secured('POST', '/api/admin/ai/deployments', 'platform:ai.admin', null, async (req, a) => gateway.admin.createDeployment(actorOf(a), body(req))),
@@ -148,8 +195,8 @@ export function createApp(o: AppOptions) {
 
   // ── module routes, mounted under /api/m/<module-id> ──
   for (const r of platform.routes) {
-    routes.push(secured(r.method, r.fullPath, r.permission, r.moduleId, async (req, a) =>
-      r.handler({ principal: principalOf(a), params: req.params, query: req.query, body: req.body, signal: req.signal })))
+    routes.push({ ...secured(r.method, r.fullPath, r.permission, r.moduleId, async (req, a) =>
+      r.handler({ principal: principalOf(a), params: req.params, query: req.query, body: req.body, signal: req.signal })), rawBody: r.rawBody })
   }
 
   for (const r of routes) if (r.permission !== 'public' && !platform.permissions.has(r.permission)) throw new AppError('route_permission_unknown', `${r.method} ${r.path} uses unknown permission ${r.permission}`)

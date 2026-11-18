@@ -1,0 +1,561 @@
+{"reference": {"package": "fsrs (py-fsrs)", "version": "2.5.1", "algorithm": "FSRS-4.5", "weights": [0.4872, 1.4003, 3.7145, 13.8206, 5.1618, 1.2298, 0.8975, 0.031, 1.6474, 0.1367, 1.0461, 2.1072, 0.0793, 0.3246, 1.587, 0.2272, 2.8755], "maximumInterval": 36500, "mode": "long-term (Review-state after first review)"},
+ "sequences": [
+  {"name": "first 1 then good x8 on schedule", "desiredRetention": 0.9, "steps": [
+   {"grade": 1, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 0.4872, "difficulty": 7.6214, "intervalDays": 1, "reps": 1, "lapses": 0},
+   {"grade": 3, "at": "2026-01-06T09:00:00Z", "elapsedDays": 1, "stability": 2.4224736687744715, "difficulty": 7.5451524, "intervalDays": 2, "reps": 2, "lapses": 0},
+   {"grade": 3, "at": "2026-01-08T09:00:00Z", "elapsedDays": 2, "stability": 5.9910725554326145, "difficulty": 7.4712684756, "intervalDays": 6, "reps": 3, "lapses": 0},
+   {"grade": 3, "at": "2026-01-14T09:00:00Z", "elapsedDays": 6, "stability": 15.48321654671484, "difficulty": 7.399674952856399, "intervalDays": 15, "reps": 4, "lapses": 0},
+   {"grade": 3, "at": "2026-01-29T09:00:00Z", "elapsedDays": 15, "stability": 36.81730175236335, "difficulty": 7.330300829317851, "intervalDays": 37, "reps": 5, "lapses": 0},
+   {"grade": 3, "at": "2026-03-07T09:00:00Z", "elapsedDays": 37, "stability": 84.29418869441113, "difficulty": 7.2630773036089975, "intervalDays": 84, "reps": 6, "lapses": 0},
+   {"grade": 3, "at": "2026-05-30T09:00:00Z", "elapsedDays": 84, "stability": 182.3856987479444, "difficulty": 7.197937707197118, "intervalDays": 182, "reps": 7, "lapses": 0},
+   {"grade": 3, "at": "2026-11-28T09:00:00Z", "elapsedDays": 182, "stability": 376.94333559815465, "difficulty": 7.134817438274007, "intervalDays": 377, "reps": 8, "lapses": 0},
+   {"grade": 3, "at": "2027-12-10T09:00:00Z", "elapsedDays": 377, "stability": 747.8559797095937, "difficulty": 7.073653897687513, "intervalDays": 748, "reps": 9, "lapses": 0}
+  ]},
+  {"name": "first 2 then good x8 on schedule", "desiredRetention": 0.9, "steps": [
+   {"grade": 2, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 1.4003, "difficulty": 6.3916, "intervalDays": 1, "reps": 1, "lapses": 0},
+   {"grade": 3, "at": "2026-01-06T09:00:00Z", "elapsedDays": 1, "stability": 3.995048769596788, "difficulty": 6.3534762, "intervalDays": 4, "reps": 2, "lapses": 0},
+   {"grade": 3, "at": "2026-01-10T09:00:00Z", "elapsedDays": 4, "stability": 12.802500042335604, "difficulty": 6.3165342378, "intervalDays": 13, "reps": 3, "lapses": 0},
+   {"grade": 3, "at": "2026-01-23T09:00:00Z", "elapsedDays": 13, "stability": 37.373411507299316, "difficulty": 6.2807374764282, "intervalDays": 37, "reps": 4, "lapses": 0},
+   {"grade": 3, "at": "2026-03-01T09:00:00Z", "elapsedDays": 37, "stability": 98.39482675133839, "difficulty": 6.246050414658926, "intervalDays": 98, "reps": 5, "lapses": 0},
+   {"grade": 3, "at": "2026-06-07T09:00:00Z", "elapsedDays": 98, "stability": 240.94196138601117, "difficulty": 6.212438651804499, "intervalDays": 241, "reps": 6, "lapses": 0},
+   {"grade": 3, "at": "2027-02-03T09:00:00Z", "elapsedDays": 241, "stability": 553.1594788624899, "difficulty": 6.17986885359856, "intervalDays": 553, "reps": 7, "lapses": 0},
+   {"grade": 3, "at": "2028-08-09T09:00:00Z", "elapsedDays": 553, "stability": 1197.0210598449514, "difficulty": 6.148308719137004, "intervalDays": 1197, "reps": 8, "lapses": 0},
+   {"grade": 3, "at": "2031-11-19T09:00:00Z", "elapsedDays": 1197, "stability": 2459.299793104616, "difficulty": 6.117726948843757, "intervalDays": 2459, "reps": 9, "lapses": 0}
+  ]},
+  {"name": "first 3 then good x8 on schedule", "desiredRetention": 0.9, "steps": [
+   {"grade": 3, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 3.7145, "difficulty": 5.1618, "intervalDays": 4, "reps": 1, "lapses": 0},
+   {"grade": 3, "at": "2026-01-09T09:00:00Z", "elapsedDays": 4, "stability": 14.808100506496405, "difficulty": 5.1618, "intervalDays": 15, "reps": 2, "lapses": 0},
+   {"grade": 3, "at": "2026-01-24T09:00:00Z", "elapsedDays": 15, "stability": 49.46160494627206, "difficulty": 5.1618, "intervalDays": 49, "reps": 3, "lapses": 0},
+   {"grade": 3, "at": "2026-03-14T09:00:00Z", "elapsedDays": 49, "stability": 145.67063220768378, "difficulty": 5.1618, "intervalDays": 146, "reps": 4, "lapses": 0},
+   {"grade": 3, "at": "2026-08-07T09:00:00Z", "elapsedDays": 146, "stability": 392.6978984682879, "difficulty": 5.1618, "intervalDays": 393, "reps": 5, "lapses": 0},
+   {"grade": 3, "at": "2027-09-04T09:00:00Z", "elapsedDays": 393, "stability": 973.4277907030198, "difficulty": 5.1618, "intervalDays": 973, "reps": 6, "lapses": 0},
+   {"grade": 3, "at": "2030-05-04T09:00:00Z", "elapsedDays": 973, "stability": 2243.573044041104, "difficulty": 5.1618, "intervalDays": 2244, "reps": 7, "lapses": 0},
+   {"grade": 3, "at": "2036-06-25T09:00:00Z", "elapsedDays": 2244, "stability": 4856.719687136541, "difficulty": 5.1618, "intervalDays": 4857, "reps": 8, "lapses": 0},
+   {"grade": 3, "at": "2049-10-12T09:00:00Z", "elapsedDays": 4857, "stability": 9946.103402457271, "difficulty": 5.1618, "intervalDays": 9946, "reps": 9, "lapses": 0}
+  ]},
+  {"name": "first 4 then good x8 on schedule", "desiredRetention": 0.9, "steps": [
+   {"grade": 4, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 13.8206, "difficulty": 3.9320000000000004, "intervalDays": 14, "reps": 1, "lapses": 0},
+   {"grade": 3, "at": "2026-01-19T09:00:00Z", "elapsedDays": 14, "stability": 53.34796054367348, "difficulty": 3.9701238, "intervalDays": 53, "reps": 2, "lapses": 0},
+   {"grade": 3, "at": "2026-03-13T09:00:00Z", "elapsedDays": 53, "stability": 177.32812888132725, "difficulty": 4.0070657622, "intervalDays": 177, "reps": 3, "lapses": 0},
+   {"grade": 3, "at": "2026-09-06T09:00:00Z", "elapsedDays": 177, "stability": 526.6682681560662, "difficulty": 4.0428625235718, "intervalDays": 527, "reps": 4, "lapses": 0},
+   {"grade": 3, "at": "2028-02-15T09:00:00Z", "elapsedDays": 527, "stability": 1418.1728222305649, "difficulty": 4.077549585341074, "intervalDays": 1418, "reps": 5, "lapses": 0},
+   {"grade": 3, "at": "2032-01-03T09:00:00Z", "elapsedDays": 1418, "stability": 3502.873394575708, "difficulty": 4.1111613481955, "intervalDays": 3503, "reps": 6, "lapses": 0},
+   {"grade": 3, "at": "2041-08-06T09:00:00Z", "elapsedDays": 3503, "stability": 8031.906326284765, "difficulty": 4.143731146401439, "intervalDays": 8032, "reps": 7, "lapses": 0},
+   {"grade": 3, "at": "2063-08-03T09:00:00Z", "elapsedDays": 8032, "stability": 17259.023565517156, "difficulty": 4.175291280862995, "intervalDays": 17259, "reps": 8, "lapses": 0},
+   {"grade": 3, "at": "2110-11-04T09:00:00Z", "elapsedDays": 17259, "stability": 35035.4066842295, "difficulty": 4.205873051156241, "intervalDays": 35035, "reps": 9, "lapses": 0}
+  ]},
+  {"name": "all easy x10", "desiredRetention": 0.9, "steps": [
+   {"grade": 4, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 13.8206, "difficulty": 3.9320000000000004, "intervalDays": 14, "reps": 1, "lapses": 0},
+   {"grade": 4, "at": "2026-01-19T09:00:00Z", "elapsedDays": 14, "stability": 127.48152524333311, "difficulty": 3.1004463, "intervalDays": 127, "reps": 2, "lapses": 0},
+   {"grade": 4, "at": "2026-05-26T09:00:00Z", "elapsedDays": 127, "stability": 979.4273570910492, "difficulty": 2.2946707647, "intervalDays": 979, "reps": 3, "lapses": 0},
+   {"grade": 4, "at": "2029-01-29T09:00:00Z", "elapsedDays": 979, "stability": 6454.349243022047, "difficulty": 1.5138742709943003, "intervalDays": 6454, "reps": 4, "lapses": 0},
+   {"grade": 4, "at": "2046-10-01T09:00:00Z", "elapsedDays": 6454, "stability": 36847.129311367105, "difficulty": 1, "intervalDays": 36500, "reps": 5, "lapses": 0},
+   {"grade": 4, "at": "2146-09-07T09:00:00Z", "elapsedDays": 36500, "stability": 179779.27424579344, "difficulty": 1, "intervalDays": 36502, "reps": 6, "lapses": 0},
+   {"grade": 4, "at": "2246-08-16T09:00:00Z", "elapsedDays": 36502, "stability": 304812.50484665623, "difficulty": 1, "intervalDays": 36502, "reps": 7, "lapses": 0},
+   {"grade": 4, "at": "2346-07-25T09:00:00Z", "elapsedDays": 36502, "stability": 422228.1563040188, "difficulty": 1, "intervalDays": 36502, "reps": 8, "lapses": 0},
+   {"grade": 4, "at": "2446-07-02T09:00:00Z", "elapsedDays": 36502, "stability": 534951.1316796307, "difficulty": 1, "intervalDays": 36502, "reps": 9, "lapses": 0},
+   {"grade": 4, "at": "2546-06-10T09:00:00Z", "elapsedDays": 36502, "stability": 644311.5394352422, "difficulty": 1, "intervalDays": 36502, "reps": 10, "lapses": 0}
+  ]},
+  {"name": "all hard x10", "desiredRetention": 0.9, "steps": [
+   {"grade": 2, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 1.4003, "difficulty": 6.3916, "intervalDays": 1, "reps": 1, "lapses": 0},
+   {"grade": 2, "at": "2026-01-06T09:00:00Z", "elapsedDays": 1, "stability": 1.9898269204523902, "difficulty": 7.2231537, "intervalDays": 2, "reps": 2, "lapses": 0},
+   {"grade": 2, "at": "2026-01-08T09:00:00Z", "elapsedDays": 2, "stability": 2.884042934488619, "difficulty": 8.0289292353, "intervalDays": 3, "reps": 3, "lapses": 0},
+   {"grade": 2, "at": "2026-01-11T09:00:00Z", "elapsedDays": 3, "stability": 3.8835162263527567, "difficulty": 8.809725729005699, "intervalDays": 4, "reps": 4, "lapses": 0},
+   {"grade": 2, "at": "2026-01-15T09:00:00Z", "elapsedDays": 4, "stability": 4.827728988324685, "difficulty": 9.566317531406522, "intervalDays": 5, "reps": 5, "lapses": 0},
+   {"grade": 2, "at": "2026-01-20T09:00:00Z", "elapsedDays": 5, "stability": 5.577224402529645, "difficulty": 10, "intervalDays": 6, "reps": 6, "lapses": 0},
+   {"grade": 2, "at": "2026-01-26T09:00:00Z", "elapsedDays": 6, "stability": 6.189868688749788, "difficulty": 10, "intervalDays": 6, "reps": 7, "lapses": 0},
+   {"grade": 2, "at": "2026-02-01T09:00:00Z", "elapsedDays": 6, "stability": 6.800260352562413, "difficulty": 10, "intervalDays": 7, "reps": 8, "lapses": 0},
+   {"grade": 2, "at": "2026-02-08T09:00:00Z", "elapsedDays": 7, "stability": 7.499099174361519, "difficulty": 10, "intervalDays": 7, "reps": 9, "lapses": 0},
+   {"grade": 2, "at": "2026-02-15T09:00:00Z", "elapsedDays": 7, "stability": 8.195284524228247, "difficulty": 10, "intervalDays": 8, "reps": 10, "lapses": 0}
+  ]},
+  {"name": "good with lapses", "desiredRetention": 0.9, "steps": [
+   {"grade": 3, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 3.7145, "difficulty": 5.1618, "intervalDays": 4, "reps": 1, "lapses": 0},
+   {"grade": 3, "at": "2026-01-09T09:00:00Z", "elapsedDays": 4, "stability": 14.808100506496405, "difficulty": 5.1618, "intervalDays": 15, "reps": 2, "lapses": 0},
+   {"grade": 3, "at": "2026-01-24T09:00:00Z", "elapsedDays": 15, "stability": 49.46160494627206, "difficulty": 5.1618, "intervalDays": 49, "reps": 3, "lapses": 0},
+   {"grade": 1, "at": "2026-03-14T09:00:00Z", "elapsedDays": 49, "stability": 5.567272439015208, "difficulty": 6.901155, "intervalDays": null, "reps": 4, "lapses": 1},
+   {"grade": 3, "at": "2026-03-15T09:00:00Z", "elapsedDays": 1, "stability": 7.5911429274838635, "difficulty": 6.847234995, "intervalDays": 8, "reps": 5, "lapses": 1},
+   {"grade": 3, "at": "2026-03-23T09:00:00Z", "elapsedDays": 8, "stability": 21.936581040715907, "difficulty": 6.794986510155, "intervalDays": 22, "reps": 6, "lapses": 1},
+   {"grade": 1, "at": "2026-04-14T09:00:00Z", "elapsedDays": 22, "stability": 3.744940751987329, "difficulty": 8.483712728340196, "intervalDays": null, "reps": 7, "lapses": 2},
+   {"grade": 1, "at": "2026-04-15T09:00:00Z", "elapsedDays": 1, "stability": 1.226632499931793, "difficulty": 10, "intervalDays": null, "reps": 8, "lapses": 3},
+   {"grade": 3, "at": "2026-04-16T09:00:00Z", "elapsedDays": 1, "stability": 1.794044269456591, "difficulty": 9.8500158, "intervalDays": 2, "reps": 9, "lapses": 3},
+   {"grade": 4, "at": "2026-04-18T09:00:00Z", "elapsedDays": 2, "stability": 5.251495232662694, "difficulty": 8.835003610200001, "intervalDays": 5, "reps": 10, "lapses": 3},
+   {"grade": 3, "at": "2026-04-23T09:00:00Z", "elapsedDays": 5, "stability": 10.217237223308256, "difficulty": 8.7211342982838, "intervalDays": 10, "reps": 11, "lapses": 3}
+  ]},
+  {"name": "repeated lapses", "desiredRetention": 0.9, "steps": [
+   {"grade": 3, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 3.7145, "difficulty": 5.1618, "intervalDays": 4, "reps": 1, "lapses": 0},
+   {"grade": 1, "at": "2026-01-09T09:00:00Z", "elapsedDays": 4, "stability": 1.4332344897795595, "difficulty": 6.901155, "intervalDays": null, "reps": 2, "lapses": 1},
+   {"grade": 1, "at": "2026-01-10T09:00:00Z", "elapsedDays": 1, "stability": 0.6792437845668057, "difficulty": 8.586589995, "intervalDays": null, "reps": 3, "lapses": 2},
+   {"grade": 1, "at": "2026-01-11T09:00:00Z", "elapsedDays": 1, "stability": 0.4052057261890658, "difficulty": 10, "intervalDays": null, "reps": 4, "lapses": 3},
+   {"grade": 2, "at": "2026-01-12T09:00:00Z", "elapsedDays": 1, "stability": 0.534007484086901, "difficulty": 10, "intervalDays": 1, "reps": 5, "lapses": 3},
+   {"grade": 3, "at": "2026-01-13T09:00:00Z", "elapsedDays": 1, "stability": 1.108746808510347, "difficulty": 9.8500158, "intervalDays": 2, "reps": 6, "lapses": 3},
+   {"grade": 3, "at": "2026-01-15T09:00:00Z", "elapsedDays": 2, "stability": 2.3123985672755167, "difficulty": 9.7046811102, "intervalDays": 2, "reps": 7, "lapses": 3}
+  ]},
+  {"name": "overdue 3x", "desiredRetention": 0.9, "steps": [
+   {"grade": 3, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 3.7145, "difficulty": 5.1618, "intervalDays": 4, "reps": 1, "lapses": 0},
+   {"grade": 3, "at": "2026-01-17T09:00:00Z", "elapsedDays": 12, "stability": 31.308395363743298, "difficulty": 5.1618, "intervalDays": 31, "reps": 2, "lapses": 0},
+   {"grade": 3, "at": "2026-04-20T09:00:00Z", "elapsedDays": 93, "stability": 194.3923224831677, "difficulty": 5.1618, "intervalDays": 194, "reps": 3, "lapses": 0},
+   {"grade": 3, "at": "2027-11-23T09:00:00Z", "elapsedDays": 582, "stability": 988.0567062172648, "difficulty": 5.1618, "intervalDays": 988, "reps": 4, "lapses": 0},
+   {"grade": 2, "at": "2036-01-04T09:00:00Z", "elapsedDays": 2964, "stability": 1723.0341687683176, "difficulty": 6.0314775, "intervalDays": 1723, "reps": 5, "lapses": 0},
+   {"grade": 3, "at": "2050-02-28T09:00:00Z", "elapsedDays": 5169, "stability": 6172.662693150048, "difficulty": 6.0045174975, "intervalDays": 6173, "reps": 6, "lapses": 0}
+  ]},
+  {"name": "early 0.3x", "desiredRetention": 0.9, "steps": [
+   {"grade": 3, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 3.7145, "difficulty": 5.1618, "intervalDays": 4, "reps": 1, "lapses": 0},
+   {"grade": 3, "at": "2026-01-06T09:00:00Z", "elapsedDays": 1, "stability": 6.7310686057039355, "difficulty": 5.1618, "intervalDays": 7, "reps": 2, "lapses": 0},
+   {"grade": 3, "at": "2026-01-08T09:00:00Z", "elapsedDays": 2, "stability": 12.276277197251638, "difficulty": 5.1618, "intervalDays": 12, "reps": 3, "lapses": 0},
+   {"grade": 4, "at": "2026-01-12T09:00:00Z", "elapsedDays": 4, "stability": 41.55966826004957, "difficulty": 4.2921225000000005, "intervalDays": 42, "reps": 4, "lapses": 0},
+   {"grade": 3, "at": "2026-01-25T09:00:00Z", "elapsedDays": 13, "stability": 73.79400180745643, "difficulty": 4.319082502500001, "intervalDays": 74, "reps": 5, "lapses": 0}
+  ]},
+  {"name": "partial days (+7h) floor", "desiredRetention": 0.9, "steps": [
+   {"grade": 3, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 3.7145, "difficulty": 5.1618, "intervalDays": 4, "reps": 1, "lapses": 0},
+   {"grade": 3, "at": "2026-01-09T16:00:00Z", "elapsedDays": 4, "stability": 14.808100506496405, "difficulty": 5.1618, "intervalDays": 15, "reps": 2, "lapses": 0},
+   {"grade": 2, "at": "2026-01-24T23:00:00Z", "elapsedDays": 15, "stability": 22.681376715213435, "difficulty": 6.0314775, "intervalDays": 23, "reps": 3, "lapses": 0},
+   {"grade": 3, "at": "2026-02-17T06:00:00Z", "elapsedDays": 23, "stability": 65.33660988839034, "difficulty": 6.0045174975, "intervalDays": 65, "reps": 4, "lapses": 0},
+   {"grade": 1, "at": "2026-04-23T13:00:00Z", "elapsedDays": 65, "stability": 6.213852878350965, "difficulty": 7.7177482550775, "intervalDays": null, "reps": 5, "lapses": 1},
+   {"grade": 3, "at": "2026-04-24T20:00:00Z", "elapsedDays": 1, "stability": 7.813692756169537, "difficulty": 7.638513859170097, "intervalDays": 8, "reps": 6, "lapses": 1}
+  ]},
+  {"name": "retention 0.85", "desiredRetention": 0.85, "steps": [
+   {"grade": 3, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 3.7145, "difficulty": 5.1618, "intervalDays": 6, "reps": 1, "lapses": 0},
+   {"grade": 3, "at": "2026-01-11T09:00:00Z", "elapsedDays": 6, "stability": 19.52305823000846, "difficulty": 5.1618, "intervalDays": 32, "reps": 2, "lapses": 0},
+   {"grade": 4, "at": "2026-02-12T09:00:00Z", "elapsedDays": 32, "stability": 212.33819449173643, "difficulty": 4.2921225000000005, "intervalDays": 348, "reps": 3, "lapses": 0},
+   {"grade": 2, "at": "2027-01-26T09:00:00Z", "elapsedDays": 348, "stability": 349.7083295835248, "difficulty": 5.1887600025000005, "intervalDays": 573, "reps": 4, "lapses": 0},
+   {"grade": 1, "at": "2028-08-21T09:00:00Z", "elapsedDays": 573, "stability": 13.376171434541709, "difficulty": 6.9272792424225, "intervalDays": null, "reps": 5, "lapses": 1},
+   {"grade": 3, "at": "2028-08-22T09:00:00Z", "elapsedDays": 1, "stability": 15.181201682030222, "difficulty": 6.872549385907402, "intervalDays": 25, "reps": 6, "lapses": 1},
+   {"grade": 3, "at": "2028-09-16T09:00:00Z", "elapsedDays": 25, "stability": 53.48550228262973, "difficulty": 6.819516154944273, "intervalDays": 88, "reps": 7, "lapses": 1}
+  ]},
+  {"name": "retention 0.95", "desiredRetention": 0.95, "steps": [
+   {"grade": 3, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 3.7145, "difficulty": 5.1618, "intervalDays": 2, "reps": 1, "lapses": 0},
+   {"grade": 3, "at": "2026-01-07T09:00:00Z", "elapsedDays": 2, "stability": 9.574813921216208, "difficulty": 5.1618, "intervalDays": 4, "reps": 2, "lapses": 0},
+   {"grade": 4, "at": "2026-01-11T09:00:00Z", "elapsedDays": 4, "stability": 39.56966336119014, "difficulty": 4.2921225000000005, "intervalDays": 18, "reps": 3, "lapses": 0},
+   {"grade": 2, "at": "2026-01-29T09:00:00Z", "elapsedDays": 18, "stability": 49.622502779680964, "difficulty": 5.1887600025000005, "intervalDays": 23, "reps": 4, "lapses": 0},
+   {"grade": 1, "at": "2026-02-21T09:00:00Z", "elapsedDays": 23, "stability": 5.1567862462553, "difficulty": 6.9272792424225, "intervalDays": null, "reps": 5, "lapses": 1},
+   {"grade": 3, "at": "2026-02-22T09:00:00Z", "elapsedDays": 1, "stability": 7.1856886797578925, "difficulty": 6.872549385907402, "intervalDays": 4, "reps": 6, "lapses": 1},
+   {"grade": 3, "at": "2026-02-26T09:00:00Z", "elapsedDays": 4, "stability": 14.74256734359904, "difficulty": 6.819516154944273, "intervalDays": 7, "reps": 7, "lapses": 1}
+  ]},
+  {"name": "same-day reviews", "desiredRetention": 0.9, "steps": [
+   {"grade": 3, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 3.7145, "difficulty": 5.1618, "intervalDays": 4, "reps": 1, "lapses": 0},
+   {"grade": 3, "at": "2026-01-05T11:00:00Z", "elapsedDays": 0, "stability": 3.7145, "difficulty": 5.1618, "intervalDays": 5, "reps": 2, "lapses": 0},
+   {"grade": 1, "at": "2026-01-05T14:00:00Z", "elapsedDays": 0, "stability": 1.210359567358457, "difficulty": 6.901155, "intervalDays": null, "reps": 3, "lapses": 1},
+   {"grade": 3, "at": "2026-01-06T14:00:00Z", "elapsedDays": 1, "stability": 3.537741695837861, "difficulty": 6.847234995, "intervalDays": 4, "reps": 4, "lapses": 1}
+  ]},
+  {"name": "random #0", "desiredRetention": 0.9, "steps": [
+   {"grade": 3, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 3.7145, "difficulty": 5.1618, "intervalDays": 4, "reps": 1, "lapses": 0},
+   {"grade": 1, "at": "2026-01-06T09:00:00Z", "elapsedDays": 1, "stability": 1.2696883996309631, "difficulty": 6.901155, "intervalDays": null, "reps": 2, "lapses": 1},
+   {"grade": 3, "at": "2026-01-08T09:00:00Z", "elapsedDays": 2, "stability": 5.56992018630055, "difficulty": 6.847234995, "intervalDays": 6, "reps": 3, "lapses": 1}
+  ]},
+  {"name": "random #1", "desiredRetention": 0.95, "steps": [
+   {"grade": 1, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 0.4872, "difficulty": 7.6214, "intervalDays": 1, "reps": 1, "lapses": 0},
+   {"grade": 3, "at": "2026-04-05T09:00:00Z", "elapsedDays": 90, "stability": 13.99965614091854, "difficulty": 7.5451524, "intervalDays": 6, "reps": 2, "lapses": 0},
+   {"grade": 3, "at": "2026-04-07T14:00:00Z", "elapsedDays": 2, "stability": 17.019750812853996, "difficulty": 7.4712684756, "intervalDays": 8, "reps": 3, "lapses": 0},
+   {"grade": 3, "at": "2026-04-09T14:00:00Z", "elapsedDays": 2, "stability": 20.0317172098809, "difficulty": 7.399674952856399, "intervalDays": 9, "reps": 4, "lapses": 0},
+   {"grade": 1, "at": "2026-05-19T14:00:00Z", "elapsedDays": 40, "stability": 4.0046272879529194, "difficulty": 9.06965582931785, "intervalDays": null, "reps": 5, "lapses": 1},
+   {"grade": 1, "at": "2026-05-22T14:00:00Z", "elapsedDays": 3, "stability": 1.3742674114256956, "difficulty": 10, "intervalDays": null, "reps": 6, "lapses": 2},
+   {"grade": 1, "at": "2026-07-01T14:00:00Z", "elapsedDays": 40, "stability": 1.577114251904311, "difficulty": 10, "intervalDays": null, "reps": 7, "lapses": 3},
+   {"grade": 4, "at": "2026-07-04T13:00:00Z", "elapsedDays": 2, "stability": 4.591857971584494, "difficulty": 8.9803383, "intervalDays": 3, "reps": 8, "lapses": 3},
+   {"grade": 1, "at": "2026-07-04T18:00:00Z", "elapsedDays": 0, "stability": 1.3251975459007803, "difficulty": 10, "intervalDays": null, "reps": 9, "lapses": 4}
+  ]},
+  {"name": "random #2", "desiredRetention": 0.85, "steps": [
+   {"grade": 1, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 0.4872, "difficulty": 7.6214, "intervalDays": 1, "reps": 1, "lapses": 0},
+   {"grade": 1, "at": "2026-01-06T09:00:00Z", "elapsedDays": 1, "stability": 0.32736002002473363, "difficulty": 9.284507399999999, "intervalDays": null, "reps": 2, "lapses": 1},
+   {"grade": 3, "at": "2026-02-15T09:00:00Z", "elapsedDays": 40, "stability": 4.910937322974571, "difficulty": 9.156703470599998, "intervalDays": 8, "reps": 3, "lapses": 1},
+   {"grade": 3, "at": "2026-05-16T09:00:00Z", "elapsedDays": 90, "stability": 35.43143766226364, "difficulty": 9.032861463011399, "intervalDays": 58, "reps": 4, "lapses": 1},
+   {"grade": 2, "at": "2026-05-19T14:00:00Z", "elapsedDays": 3, "stability": 35.95100907117258, "difficulty": 9.782536057658044, "intervalDays": 59, "reps": 5, "lapses": 1}
+  ]},
+  {"name": "random #3", "desiredRetention": 0.9, "steps": [
+   {"grade": 3, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 3.7145, "difficulty": 5.1618, "intervalDays": 4, "reps": 1, "lapses": 0},
+   {"grade": 2, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 3.7145, "difficulty": 6.0314775, "intervalDays": 4, "reps": 2, "lapses": 0},
+   {"grade": 3, "at": "2026-07-25T08:00:00Z", "elapsedDays": 200, "stability": 95.37138935072338, "difficulty": 6.0045174975, "intervalDays": 95, "reps": 3, "lapses": 0},
+   {"grade": 1, "at": "2027-02-10T13:00:00Z", "elapsedDays": 200, "stability": 8.30034998925028, "difficulty": 7.7177482550775, "intervalDays": null, "reps": 4, "lapses": 1},
+   {"grade": 2, "at": "2027-02-16T12:00:00Z", "elapsedDays": 5, "stability": 9.965673308138673, "difficulty": 8.508191359170096, "intervalDays": 10, "reps": 5, "lapses": 1},
+   {"grade": 2, "at": "2027-02-17T17:00:00Z", "elapsedDays": 1, "stability": 10.226132816216793, "difficulty": 9.274130727035823, "intervalDays": 10, "reps": 6, "lapses": 1},
+   {"grade": 3, "at": "2027-05-18T17:00:00Z", "elapsedDays": 90, "stability": 47.97946908255507, "difficulty": 9.146648474497713, "intervalDays": 48, "reps": 7, "lapses": 1}
+  ]},
+  {"name": "random #4", "desiredRetention": 0.9, "steps": [
+   {"grade": 4, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 13.8206, "difficulty": 3.9320000000000004, "intervalDays": 14, "reps": 1, "lapses": 0},
+   {"grade": 3, "at": "2026-01-13T14:00:00Z", "elapsedDays": 8, "stability": 37.4329991238345, "difficulty": 3.9701238, "intervalDays": 37, "reps": 2, "lapses": 0},
+   {"grade": 4, "at": "2026-08-01T19:00:00Z", "elapsedDays": 200, "stability": 1038.4088904826324, "difficulty": 3.1373882622, "intervalDays": 1038, "reps": 3, "lapses": 0},
+   {"grade": 3, "at": "2026-08-09T19:00:00Z", "elapsedDays": 8, "stability": 1053.9043561410074, "difficulty": 3.2001450260718, "intervalDays": 1054, "reps": 4, "lapses": 0},
+   {"grade": 3, "at": "2026-08-10T19:00:00Z", "elapsedDays": 1, "stability": 1055.8234265488302, "difficulty": 3.260956330263574, "intervalDays": 1056, "reps": 5, "lapses": 0},
+   {"grade": 2, "at": "2026-08-18T19:00:00Z", "elapsedDays": 8, "stability": 1059.280848394598, "difficulty": 4.189559984025403, "intervalDays": 1059, "reps": 6, "lapses": 0},
+   {"grade": 1, "at": "2027-03-06T19:00:00Z", "elapsedDays": 200, "stability": 16.726089744034226, "difficulty": 5.959054424520616, "intervalDays": null, "reps": 7, "lapses": 1},
+   {"grade": 3, "at": "2027-03-09T18:00:00Z", "elapsedDays": 2, "stability": 21.038061987994542, "difficulty": 5.934339537360477, "intervalDays": 21, "reps": 8, "lapses": 1},
+   {"grade": 3, "at": "2027-03-30T18:00:00Z", "elapsedDays": 21, "stability": 61.21921436124632, "difficulty": 5.910390811702301, "intervalDays": 61, "reps": 9, "lapses": 1}
+  ]},
+  {"name": "random #5", "desiredRetention": 0.9, "steps": [
+   {"grade": 1, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 0.4872, "difficulty": 7.6214, "intervalDays": 1, "reps": 1, "lapses": 0},
+   {"grade": 1, "at": "2026-07-24T09:00:00Z", "elapsedDays": 200, "stability": 1.0266227023906696, "difficulty": 9.284507399999999, "intervalDays": null, "reps": 2, "lapses": 1},
+   {"grade": 4, "at": "2026-08-07T08:00:00Z", "elapsedDays": 13, "stability": 18.948629025017055, "difficulty": 8.287025970599998, "intervalDays": 19, "reps": 3, "lapses": 1},
+   {"grade": 4, "at": "2026-08-16T07:00:00Z", "elapsedDays": 8, "stability": 44.32980370312666, "difficulty": 7.320466465511398, "intervalDays": 44, "reps": 4, "lapses": 1},
+   {"grade": 2, "at": "2026-08-21T07:00:00Z", "elapsedDays": 5, "stability": 45.89573026711214, "difficulty": 8.123225305080545, "intervalDays": 46, "reps": 5, "lapses": 1},
+   {"grade": 2, "at": "2026-09-03T07:00:00Z", "elapsedDays": 13, "stability": 49.004314630435935, "difficulty": 8.90109862062305, "intervalDays": 49, "reps": 6, "lapses": 1},
+   {"grade": 2, "at": "2026-09-04T07:00:00Z", "elapsedDays": 1, "stability": 49.18238840719714, "difficulty": 9.654857863383736, "intervalDays": 49, "reps": 7, "lapses": 1}
+  ]},
+  {"name": "random #6", "desiredRetention": 0.85, "steps": [
+   {"grade": 1, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 0.4872, "difficulty": 7.6214, "intervalDays": 1, "reps": 1, "lapses": 0},
+   {"grade": 3, "at": "2026-01-13T09:00:00Z", "elapsedDays": 8, "stability": 7.752862332538646, "difficulty": 7.5451524, "intervalDays": 13, "reps": 2, "lapses": 0},
+   {"grade": 2, "at": "2026-01-19T08:00:00Z", "elapsedDays": 5, "stability": 9.514323421033794, "difficulty": 8.3409459756, "intervalDays": 16, "reps": 3, "lapses": 0},
+   {"grade": 4, "at": "2026-01-19T13:00:00Z", "elapsedDays": 0, "stability": 9.514323421033794, "difficulty": 7.3727149503564, "intervalDays": 18, "reps": 4, "lapses": 0},
+   {"grade": 3, "at": "2026-02-09T13:00:00Z", "elapsedDays": 21, "stability": 38.1919034307406, "difficulty": 7.304176586895352, "intervalDays": 63, "reps": 5, "lapses": 0},
+   {"grade": 3, "at": "2026-02-13T12:00:00Z", "elapsedDays": 3, "stability": 42.447495016581456, "difficulty": 7.237762912701596, "intervalDays": 70, "reps": 6, "lapses": 0},
+   {"grade": 4, "at": "2026-02-15T12:00:00Z", "elapsedDays": 2, "stability": 50.662246652642516, "difficulty": 6.303730562407846, "intervalDays": 83, "reps": 7, "lapses": 0},
+   {"grade": 1, "at": "2026-02-16T12:00:00Z", "elapsedDays": 1, "stability": 4.748704874932383, "difficulty": 8.007685714973203, "intervalDays": null, "reps": 8, "lapses": 1},
+   {"grade": 3, "at": "2026-02-18T11:00:00Z", "elapsedDays": 1, "stability": 6.253487224298695, "difficulty": 7.919463257809033, "intervalDays": 10, "reps": 9, "lapses": 1},
+   {"grade": 3, "at": "2026-02-18T11:00:00Z", "elapsedDays": 0, "stability": 6.253487224298695, "difficulty": 7.833975696816953, "intervalDays": 11, "reps": 10, "lapses": 1},
+   {"grade": 3, "at": "2026-05-19T16:00:00Z", "elapsedDays": 90, "stability": 64.38610606126353, "difficulty": 7.751138250215628, "intervalDays": 105, "reps": 11, "lapses": 1},
+   {"grade": 3, "at": "2026-05-22T21:00:00Z", "elapsedDays": 3, "stability": 67.8819233945008, "difficulty": 7.670868764458943, "intervalDays": 111, "reps": 12, "lapses": 1},
+   {"grade": 3, "at": "2026-05-24T20:00:00Z", "elapsedDays": 1, "stability": 69.07170267966555, "difficulty": 7.5930876327607155, "intervalDays": 113, "reps": 13, "lapses": 1}
+  ]},
+  {"name": "random #7", "desiredRetention": 0.8, "steps": [
+   {"grade": 2, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 1.4003, "difficulty": 6.3916, "intervalDays": 3, "reps": 1, "lapses": 0},
+   {"grade": 3, "at": "2026-01-18T14:00:00Z", "elapsedDays": 13, "stability": 20.057051739374455, "difficulty": 6.3534762, "intervalDays": 48, "reps": 2, "lapses": 0},
+   {"grade": 3, "at": "2026-01-23T19:00:00Z", "elapsedDays": 5, "stability": 29.610755168206442, "difficulty": 6.3165342378, "intervalDays": 71, "reps": 3, "lapses": 0},
+   {"grade": 3, "at": "2026-03-05T00:00:00Z", "elapsedDays": 40, "stability": 94.86355165486195, "difficulty": 6.2807374764282, "intervalDays": 227, "reps": 4, "lapses": 0},
+   {"grade": 4, "at": "2026-03-06T23:00:00Z", "elapsedDays": 1, "stability": 99.49868681361693, "difficulty": 5.376372914658926, "intervalDays": 239, "reps": 5, "lapses": 0},
+   {"grade": 3, "at": "2026-03-09T22:00:00Z", "elapsedDays": 2, "stability": 103.31122918932674, "difficulty": 5.369721154304499, "intervalDays": 248, "reps": 6, "lapses": 0},
+   {"grade": 1, "at": "2026-03-22T22:00:00Z", "elapsedDays": 13, "stability": 6.642482366073002, "difficulty": 7.10263059852106, "intervalDays": null, "reps": 7, "lapses": 1}
+  ]},
+  {"name": "random #8", "desiredRetention": 0.9, "steps": [
+   {"grade": 4, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 13.8206, "difficulty": 3.9320000000000004, "intervalDays": 14, "reps": 1, "lapses": 0},
+   {"grade": 1, "at": "2026-01-06T09:00:00Z", "elapsedDays": 1, "stability": 2.6804166658323423, "difficulty": 5.7094788, "intervalDays": null, "reps": 2, "lapses": 1},
+   {"grade": 2, "at": "2026-01-08T14:00:00Z", "elapsedDays": 2, "stability": 3.914944184841558, "difficulty": 6.5621782572, "intervalDays": 4, "reps": 3, "lapses": 1},
+   {"grade": 2, "at": "2026-01-09T14:00:00Z", "elapsedDays": 1, "stability": 4.432970410906648, "difficulty": 7.3884440312268005, "intervalDays": 4, "reps": 4, "lapses": 1},
+   {"grade": 3, "at": "2026-01-10T19:00:00Z", "elapsedDays": 1, "stability": 6.263274012680635, "difficulty": 7.31941806625877, "intervalDays": 6, "reps": 5, "lapses": 1},
+   {"grade": 1, "at": "2026-01-11T19:00:00Z", "elapsedDays": 1, "stability": 1.6733001234615867, "difficulty": 8.991886906204748, "intervalDays": null, "reps": 6, "lapses": 2},
+   {"grade": 3, "at": "2026-01-16T19:00:00Z", "elapsedDays": 5, "stability": 6.167928260489409, "difficulty": 8.8731542121124, "intervalDays": 6, "reps": 7, "lapses": 2},
+   {"grade": 3, "at": "2026-01-21T19:00:00Z", "elapsedDays": 5, "stability": 11.008794868759539, "difficulty": 8.758102231536915, "intervalDays": 11, "reps": 8, "lapses": 2},
+   {"grade": 3, "at": "2026-01-23T18:00:00Z", "elapsedDays": 1, "stability": 12.027361320857729, "difficulty": 8.64661686235927, "intervalDays": 12, "reps": 9, "lapses": 2}
+  ]},
+  {"name": "random #9", "desiredRetention": 0.85, "steps": [
+   {"grade": 3, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 3.7145, "difficulty": 5.1618, "intervalDays": 6, "reps": 1, "lapses": 0},
+   {"grade": 3, "at": "2026-01-18T09:00:00Z", "elapsedDays": 13, "stability": 33.000104618326326, "difficulty": 5.1618, "intervalDays": 54, "reps": 2, "lapses": 0},
+   {"grade": 2, "at": "2026-02-27T09:00:00Z", "elapsedDays": 40, "stability": 51.45316841378113, "difficulty": 6.0314775, "intervalDays": 84, "reps": 3, "lapses": 0},
+   {"grade": 4, "at": "2026-05-28T14:00:00Z", "elapsedDays": 90, "stability": 451.6621194582041, "difficulty": 5.1348399975, "intervalDays": 740, "reps": 4, "lapses": 0},
+   {"grade": 2, "at": "2026-05-31T13:00:00Z", "elapsedDays": 2, "stability": 452.3980780872377, "difficulty": 6.0053532575775, "intervalDays": 741, "reps": 5, "lapses": 0},
+   {"grade": 2, "at": "2026-12-17T13:00:00Z", "elapsedDays": 200, "stability": 512.0895297022535, "difficulty": 6.848880606592598, "intervalDays": 838, "reps": 6, "lapses": 0},
+   {"grade": 1, "at": "2026-12-25T13:00:00Z", "elapsedDays": 8, "stability": 11.939741287748832, "difficulty": 8.535936107788228, "intervalDays": null, "reps": 7, "lapses": 1},
+   {"grade": 3, "at": "2026-12-30T13:00:00Z", "elapsedDays": 5, "stability": 17.278797983367472, "difficulty": 8.431337888446793, "intervalDays": 28, "reps": 8, "lapses": 1},
+   {"grade": 2, "at": "2027-01-12T13:00:00Z", "elapsedDays": 13, "stability": 20.296748784071745, "difficulty": 9.199659713904941, "intervalDays": 33, "reps": 9, "lapses": 1},
+   {"grade": 3, "at": "2027-04-13T12:00:00Z", "elapsedDays": 90, "stability": 66.6344458667136, "difficulty": 9.074486062773888, "intervalDays": 109, "reps": 10, "lapses": 1}
+  ]},
+  {"name": "random #10", "desiredRetention": 0.95, "steps": [
+   {"grade": 2, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 1.4003, "difficulty": 6.3916, "intervalDays": 1, "reps": 1, "lapses": 0},
+   {"grade": 4, "at": "2026-01-10T09:00:00Z", "elapsedDays": 5, "stability": 30.458746587918352, "difficulty": 5.4837987, "intervalDays": 14, "reps": 2, "lapses": 0},
+   {"grade": 1, "at": "2026-01-12T08:00:00Z", "elapsedDays": 1, "stability": 3.821765249967025, "difficulty": 7.2131717403, "intervalDays": null, "reps": 3, "lapses": 1},
+   {"grade": 3, "at": "2026-01-20T08:00:00Z", "elapsedDays": 8, "stability": 16.869654738494614, "difficulty": 7.1495792163507, "intervalDays": 8, "reps": 4, "lapses": 1},
+   {"grade": 3, "at": "2026-04-20T08:00:00Z", "elapsedDays": 90, "stability": 112.59358808678878, "difficulty": 7.087958060643828, "intervalDays": 52, "reps": 5, "lapses": 1},
+   {"grade": 2, "at": "2026-05-30T13:00:00Z", "elapsedDays": 40, "stability": 124.00875229916745, "difficulty": 7.897924660763869, "intervalDays": 57, "reps": 6, "lapses": 1},
+   {"grade": 2, "at": "2026-07-10T12:00:00Z", "elapsedDays": 40, "stability": 132.97365167409646, "difficulty": 8.68278229628019, "intervalDays": 61, "reps": 7, "lapses": 1},
+   {"grade": 4, "at": "2026-07-23T12:00:00Z", "elapsedDays": 13, "stability": 160.94699489980354, "difficulty": 7.703954345095504, "intervalDays": 74, "reps": 8, "lapses": 1},
+   {"grade": 3, "at": "2026-07-24T17:00:00Z", "elapsedDays": 1, "stability": 161.99484498710476, "difficulty": 7.625147560397543, "intervalDays": 75, "reps": 9, "lapses": 1},
+   {"grade": 3, "at": "2026-08-14T17:00:00Z", "elapsedDays": 21, "stability": 184.19295362277458, "difficulty": 7.5487837860252185, "intervalDays": 85, "reps": 10, "lapses": 1},
+   {"grade": 2, "at": "2027-03-03T16:00:00Z", "elapsedDays": 200, "stability": 227.8449018673151, "difficulty": 8.344464788658437, "intervalDays": 105, "reps": 11, "lapses": 1},
+   {"grade": 4, "at": "2027-06-02T15:00:00Z", "elapsedDays": 90, "stability": 427.3711231920775, "difficulty": 7.376124680210025, "intervalDays": 197, "reps": 12, "lapses": 1},
+   {"grade": 3, "at": "2027-06-02T20:00:00Z", "elapsedDays": 0, "stability": 427.3711231920775, "difficulty": 7.307480615123514, "intervalDays": 198, "reps": 13, "lapses": 1}
+  ]},
+  {"name": "random #11", "desiredRetention": 0.8, "steps": [
+   {"grade": 1, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 0.4872, "difficulty": 7.6214, "intervalDays": 1, "reps": 1, "lapses": 0},
+   {"grade": 3, "at": "2026-01-13T09:00:00Z", "elapsedDays": 8, "stability": 7.752862332538646, "difficulty": 7.5451524, "intervalDays": 19, "reps": 2, "lapses": 0}
+  ]},
+  {"name": "random #12", "desiredRetention": 0.95, "steps": [
+   {"grade": 3, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 3.7145, "difficulty": 5.1618, "intervalDays": 2, "reps": 1, "lapses": 0},
+   {"grade": 3, "at": "2026-01-06T14:00:00Z", "elapsedDays": 1, "stability": 6.7310686057039355, "difficulty": 5.1618, "intervalDays": 3, "reps": 2, "lapses": 0},
+   {"grade": 3, "at": "2026-01-14T19:00:00Z", "elapsedDays": 8, "stability": 26.964330227859428, "difficulty": 5.1618, "intervalDays": 12, "reps": 3, "lapses": 0},
+   {"grade": 4, "at": "2026-04-15T00:00:00Z", "elapsedDays": 90, "stability": 477.08103780215066, "difficulty": 4.2921225000000005, "intervalDays": 220, "reps": 4, "lapses": 0},
+   {"grade": 2, "at": "2026-04-18T23:00:00Z", "elapsedDays": 3, "stability": 478.33391040266207, "difficulty": 5.1887600025000005, "intervalDays": 220, "reps": 5, "lapses": 0},
+   {"grade": 3, "at": "2026-05-29T04:00:00Z", "elapsedDays": 40, "stability": 541.4504459694772, "difficulty": 5.1879242424225005, "intervalDays": 249, "reps": 6, "lapses": 0},
+   {"grade": 2, "at": "2026-07-08T09:00:00Z", "elapsedDays": 40, "stability": 555.5672056970509, "difficulty": 6.0567918909074026, "intervalDays": 256, "reps": 7, "lapses": 0},
+   {"grade": 3, "at": "2026-10-07T08:00:00Z", "elapsedDays": 90, "stability": 672.8815778853814, "difficulty": 6.029047142289273, "intervalDays": 310, "reps": 8, "lapses": 0},
+   {"grade": 1, "at": "2026-10-07T13:00:00Z", "elapsedDays": 0, "stability": 13.307880004616441, "difficulty": 7.741517480878305, "intervalDays": null, "reps": 9, "lapses": 1},
+   {"grade": 3, "at": "2026-10-11T12:00:00Z", "elapsedDays": 3, "stability": 17.57083010431094, "difficulty": 7.661546238971077, "intervalDays": 8, "reps": 10, "lapses": 1},
+   {"grade": 4, "at": "2026-10-24T12:00:00Z", "elapsedDays": 13, "stability": 67.16372979262393, "difficulty": 6.714376605562974, "intervalDays": 31, "reps": 11, "lapses": 1}
+  ]},
+  {"name": "random #13", "desiredRetention": 0.8, "steps": [
+   {"grade": 3, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 3.7145, "difficulty": 5.1618, "intervalDays": 9, "reps": 1, "lapses": 0},
+   {"grade": 4, "at": "2026-01-26T14:00:00Z", "elapsedDays": 21, "stability": 121.08549561287336, "difficulty": 4.2921225000000005, "intervalDays": 290, "reps": 2, "lapses": 0},
+   {"grade": 1, "at": "2026-03-07T14:00:00Z", "elapsedDays": 40, "stability": 7.475133499361558, "difficulty": 6.0584375025, "intervalDays": null, "reps": 3, "lapses": 1},
+   {"grade": 4, "at": "2026-03-15T14:00:00Z", "elapsedDays": 8, "stability": 56.584839814729406, "difficulty": 5.1609642399225, "intervalDays": 136, "reps": 4, "lapses": 1}
+  ]},
+  {"name": "random #14", "desiredRetention": 0.9, "steps": [
+   {"grade": 3, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 3.7145, "difficulty": 5.1618, "intervalDays": 4, "reps": 1, "lapses": 0},
+   {"grade": 4, "at": "2026-01-06T08:00:00Z", "elapsedDays": 0, "stability": 3.7145, "difficulty": 4.2921225000000005, "intervalDays": 6, "reps": 2, "lapses": 0},
+   {"grade": 2, "at": "2026-01-08T07:00:00Z", "elapsedDays": 1, "stability": 4.501958523570116, "difficulty": 5.1887600025000005, "intervalDays": 5, "reps": 3, "lapses": 0},
+   {"grade": 3, "at": "2026-01-09T06:00:00Z", "elapsedDays": 0, "stability": 4.501958523570116, "difficulty": 5.1879242424225005, "intervalDays": 6, "reps": 4, "lapses": 0},
+   {"grade": 1, "at": "2026-01-12T11:00:00Z", "elapsedDays": 3, "stability": 1.527907233218683, "difficulty": 6.926469390907402, "intervalDays": null, "reps": 5, "lapses": 1},
+   {"grade": 3, "at": "2026-01-13T11:00:00Z", "elapsedDays": 1, "stability": 3.808390727816852, "difficulty": 6.871764639789273, "intervalDays": 4, "reps": 6, "lapses": 1},
+   {"grade": 3, "at": "2026-01-27T10:00:00Z", "elapsedDays": 13, "stability": 24.58102115300474, "difficulty": 6.818755735955805, "intervalDays": 25, "reps": 7, "lapses": 1},
+   {"grade": 1, "at": "2026-01-29T09:00:00Z", "elapsedDays": 1, "stability": 3.3990774540852176, "difficulty": 8.506745108141176, "intervalDays": null, "reps": 8, "lapses": 2}
+  ]},
+  {"name": "random #15", "desiredRetention": 0.8, "steps": [
+   {"grade": 3, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 3.7145, "difficulty": 5.1618, "intervalDays": 9, "reps": 1, "lapses": 0},
+   {"grade": 4, "at": "2026-01-07T14:00:00Z", "elapsedDays": 2, "stability": 20.565832680457206, "difficulty": 4.2921225000000005, "intervalDays": 49, "reps": 2, "lapses": 0},
+   {"grade": 1, "at": "2026-01-15T14:00:00Z", "elapsedDays": 8, "stability": 3.4350215117844582, "difficulty": 6.0584375025, "intervalDays": null, "reps": 3, "lapses": 1},
+   {"grade": 3, "at": "2026-04-15T14:00:00Z", "elapsedDays": 90, "stability": 72.29819519724379, "difficulty": 6.0306417399225, "intervalDays": 173, "reps": 4, "lapses": 1},
+   {"grade": 3, "at": "2026-11-01T14:00:00Z", "elapsedDays": 200, "stability": 342.9443213250176, "difficulty": 6.003707645984902, "intervalDays": 822, "reps": 5, "lapses": 1},
+   {"grade": 1, "at": "2026-11-03T13:00:00Z", "elapsedDays": 1, "stability": 10.348464789219147, "difficulty": 7.71696350895937, "intervalDays": null, "reps": 6, "lapses": 2},
+   {"grade": 2, "at": "2026-11-05T13:00:00Z", "elapsedDays": 2, "stability": 11.024191136716729, "difficulty": 8.50743094018163, "intervalDays": 26, "reps": 7, "lapses": 2},
+   {"grade": 3, "at": "2027-05-24T13:00:00Z", "elapsedDays": 200, "stability": 93.62820739022624, "difficulty": 8.403716381035998, "intervalDays": 225, "reps": 8, "lapses": 2},
+   {"grade": 1, "at": "2027-05-24T13:00:00Z", "elapsedDays": 0, "stability": 6.015018252726591, "difficulty": 10, "intervalDays": null, "reps": 9, "lapses": 3},
+   {"grade": 1, "at": "2027-05-26T12:00:00Z", "elapsedDays": 1, "stability": 1.5956416061802385, "difficulty": 10, "intervalDays": null, "reps": 10, "lapses": 4}
+  ]},
+  {"name": "random #16", "desiredRetention": 0.85, "steps": [
+   {"grade": 3, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 3.7145, "difficulty": 5.1618, "intervalDays": 6, "reps": 1, "lapses": 0},
+   {"grade": 3, "at": "2026-01-06T09:00:00Z", "elapsedDays": 1, "stability": 6.7310686057039355, "difficulty": 5.1618, "intervalDays": 11, "reps": 2, "lapses": 0},
+   {"grade": 3, "at": "2026-01-15T08:00:00Z", "elapsedDays": 8, "stability": 26.964330227859428, "difficulty": 5.1618, "intervalDays": 44, "reps": 3, "lapses": 0},
+   {"grade": 1, "at": "2026-02-05T08:00:00Z", "elapsedDays": 21, "stability": 4.095365617585339, "difficulty": 6.901155, "intervalDays": null, "reps": 4, "lapses": 1},
+   {"grade": 4, "at": "2026-08-24T08:00:00Z", "elapsedDays": 200, "stability": 234.88690030054178, "difficulty": 5.977557495, "intervalDays": 385, "reps": 5, "lapses": 1},
+   {"grade": 2, "at": "2026-11-22T08:00:00Z", "elapsedDays": 90, "stability": 264.6177333950238, "difficulty": 6.821946512655, "intervalDays": 433, "reps": 6, "lapses": 1},
+   {"grade": 3, "at": "2027-06-10T08:00:00Z", "elapsedDays": 200, "stability": 493.44089380241894, "difficulty": 6.770481970762694, "intervalDays": 808, "reps": 7, "lapses": 1},
+   {"grade": 4, "at": "2027-06-10T13:00:00Z", "elapsedDays": 0, "stability": 493.44089380241894, "difficulty": 5.850935329669051, "intervalDays": 810, "reps": 8, "lapses": 1},
+   {"grade": 4, "at": "2027-09-08T13:00:00Z", "elapsedDays": 90, "stability": 849.7568928769692, "difficulty": 4.95989463444931, "intervalDays": 1391, "reps": 9, "lapses": 1},
+   {"grade": 1, "at": "2027-09-10T13:00:00Z", "elapsedDays": 2, "stability": 14.729979925974233, "difficulty": 6.705508700781381, "intervalDays": null, "reps": 10, "lapses": 2},
+   {"grade": 3, "at": "2027-10-02T12:00:00Z", "elapsedDays": 21, "stability": 49.04465648874102, "difficulty": 6.657653731057159, "intervalDays": 80, "reps": 11, "lapses": 2},
+   {"grade": 4, "at": "2027-10-15T12:00:00Z", "elapsedDays": 13, "stability": 108.01251746270316, "difficulty": 5.741604765394387, "intervalDays": 177, "reps": 12, "lapses": 2},
+   {"grade": 3, "at": "2027-11-24T17:00:00Z", "elapsedDays": 40, "stability": 175.8202224171953, "difficulty": 5.723630817667161, "intervalDays": 288, "reps": 13, "lapses": 2}
+  ]},
+  {"name": "random #17", "desiredRetention": 0.85, "steps": [
+   {"grade": 3, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 3.7145, "difficulty": 5.1618, "intervalDays": 6, "reps": 1, "lapses": 0},
+   {"grade": 3, "at": "2026-01-10T09:00:00Z", "elapsedDays": 5, "stability": 17.224653584184498, "difficulty": 5.1618, "intervalDays": 28, "reps": 2, "lapses": 0},
+   {"grade": 1, "at": "2026-02-19T09:00:00Z", "elapsedDays": 40, "stability": 3.9498255788459202, "difficulty": 6.901155, "intervalDays": null, "reps": 3, "lapses": 1},
+   {"grade": 3, "at": "2026-02-20T14:00:00Z", "elapsedDays": 1, "stability": 6.053683987681456, "difficulty": 6.847234995, "intervalDays": 10, "reps": 4, "lapses": 1},
+   {"grade": 4, "at": "2026-02-23T14:00:00Z", "elapsedDays": 3, "stability": 22.948936097167433, "difficulty": 5.925309010155, "intervalDays": 38, "reps": 5, "lapses": 1},
+   {"grade": 3, "at": "2026-02-24T13:00:00Z", "elapsedDays": 0, "stability": 22.948936097167433, "difficulty": 5.9016402308401945, "intervalDays": 39, "reps": 6, "lapses": 1},
+   {"grade": 4, "at": "2026-05-25T13:00:00Z", "elapsedDays": 90, "stability": 407.69809402317935, "difficulty": 5.009027683684148, "intervalDays": 668, "reps": 7, "lapses": 1},
+   {"grade": 3, "at": "2026-12-11T18:00:00Z", "elapsedDays": 200, "stability": 725.6932987440243, "difficulty": 5.01376362548994, "intervalDays": 1188, "reps": 8, "lapses": 1}
+  ]},
+  {"name": "random #18", "desiredRetention": 0.95, "steps": [
+   {"grade": 3, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 3.7145, "difficulty": 5.1618, "intervalDays": 2, "reps": 1, "lapses": 0},
+   {"grade": 3, "at": "2026-01-18T14:00:00Z", "elapsedDays": 13, "stability": 33.000104618326326, "difficulty": 5.1618, "intervalDays": 15, "reps": 2, "lapses": 0},
+   {"grade": 3, "at": "2026-01-24T13:00:00Z", "elapsedDays": 5, "stability": 44.33670030461368, "difficulty": 5.1618, "intervalDays": 20, "reps": 3, "lapses": 0},
+   {"grade": 3, "at": "2026-08-12T13:00:00Z", "elapsedDays": 200, "stability": 342.8490429821967, "difficulty": 5.1618, "intervalDays": 158, "reps": 4, "lapses": 0},
+   {"grade": 1, "at": "2026-08-25T13:00:00Z", "elapsedDays": 13, "stability": 10.540050387800834, "difficulty": 6.901155, "intervalDays": null, "reps": 5, "lapses": 1},
+   {"grade": 1, "at": "2026-09-02T13:00:00Z", "elapsedDays": 8, "stability": 2.482617212647131, "difficulty": 8.586589995, "intervalDays": null, "reps": 6, "lapses": 2},
+   {"grade": 3, "at": "2026-09-16T12:00:00Z", "elapsedDays": 13, "stability": 13.816100709641645, "difficulty": 8.480421505155, "intervalDays": 6, "reps": 7, "lapses": 2},
+   {"grade": 3, "at": "2026-09-22T11:00:00Z", "elapsedDays": 5, "stability": 19.20061227391375, "difficulty": 8.377544238495195, "intervalDays": 9, "reps": 8, "lapses": 2},
+   {"grade": 2, "at": "2026-10-05T11:00:00Z", "elapsedDays": 13, "stability": 22.261396148603474, "difficulty": 9.147533667101843, "intervalDays": 10, "reps": 9, "lapses": 2}
+  ]},
+  {"name": "random #19", "desiredRetention": 0.9, "steps": [
+   {"grade": 3, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 3.7145, "difficulty": 5.1618, "intervalDays": 4, "reps": 1, "lapses": 0},
+   {"grade": 3, "at": "2026-01-13T14:00:00Z", "elapsedDays": 8, "stability": 23.803284140732487, "difficulty": 5.1618, "intervalDays": 24, "reps": 2, "lapses": 0},
+   {"grade": 4, "at": "2026-04-13T14:00:00Z", "elapsedDays": 90, "stability": 466.70805477246057, "difficulty": 4.2921225000000005, "intervalDays": 467, "reps": 3, "lapses": 0},
+   {"grade": 2, "at": "2026-10-30T14:00:00Z", "elapsedDays": 200, "stability": 546.6502905440221, "difficulty": 5.1887600025000005, "intervalDays": 547, "reps": 4, "lapses": 0},
+   {"grade": 3, "at": "2026-11-21T13:00:00Z", "elapsedDays": 21, "stability": 579.3546519853824, "difficulty": 5.1879242424225005, "intervalDays": 579, "reps": 5, "lapses": 0},
+   {"grade": 1, "at": "2026-11-22T13:00:00Z", "elapsedDays": 1, "stability": 12.746353634432145, "difficulty": 6.926469390907402, "intervalDays": null, "reps": 6, "lapses": 1},
+   {"grade": 1, "at": "2027-02-20T13:00:00Z", "elapsedDays": 90, "stability": 4.476229971654181, "difficulty": 8.611119639789273, "intervalDays": null, "reps": 7, "lapses": 2},
+   {"grade": 3, "at": "2027-02-25T13:00:00Z", "elapsedDays": 5, "stability": 9.985706178565618, "difficulty": 8.504190730955806, "intervalDays": 10, "reps": 8, "lapses": 2}
+  ]},
+  {"name": "random #20", "desiredRetention": 0.9, "steps": [
+   {"grade": 1, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 0.4872, "difficulty": 7.6214, "intervalDays": 1, "reps": 1, "lapses": 0},
+   {"grade": 3, "at": "2026-01-27T08:00:00Z", "elapsedDays": 21, "stability": 10.67142637151777, "difficulty": 7.5451524, "intervalDays": 11, "reps": 2, "lapses": 0},
+   {"grade": 4, "at": "2026-01-29T13:00:00Z", "elapsedDays": 2, "stability": 19.639258225574977, "difficulty": 6.6015909756, "intervalDays": 20, "reps": 3, "lapses": 0},
+   {"grade": 1, "at": "2026-02-03T18:00:00Z", "elapsedDays": 5, "stability": 3.1732701889262347, "difficulty": 8.296312455356398, "intervalDays": null, "reps": 4, "lapses": 1},
+   {"grade": 3, "at": "2026-02-03T18:00:00Z", "elapsedDays": 0, "stability": 3.1732701889262347, "difficulty": 8.19914256924035, "intervalDays": 4, "reps": 5, "lapses": 1},
+   {"grade": 3, "at": "2026-02-05T18:00:00Z", "elapsedDays": 2, "stability": 6.018289834640825, "difficulty": 8.104984949593899, "intervalDays": 6, "reps": 6, "lapses": 1},
+   {"grade": 2, "at": "2026-02-07T17:00:00Z", "elapsedDays": 1, "stability": 6.340106376062297, "difficulty": 8.883423716156488, "intervalDays": 6, "reps": 7, "lapses": 1},
+   {"grade": 3, "at": "2026-02-20T17:00:00Z", "elapsedDays": 13, "stability": 17.44018293927357, "difficulty": 8.768053380955637, "intervalDays": 17, "reps": 8, "lapses": 1},
+   {"grade": 3, "at": "2026-03-05T22:00:00Z", "elapsedDays": 13, "stability": 28.975772541036374, "difficulty": 8.656259526146012, "intervalDays": 29, "reps": 9, "lapses": 1}
+  ]},
+  {"name": "random #21", "desiredRetention": 0.9, "steps": [
+   {"grade": 4, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 13.8206, "difficulty": 3.9320000000000004, "intervalDays": 14, "reps": 1, "lapses": 0},
+   {"grade": 3, "at": "2026-01-06T09:00:00Z", "elapsedDays": 1, "stability": 16.940022682822313, "difficulty": 3.9701238, "intervalDays": 17, "reps": 2, "lapses": 0},
+   {"grade": 4, "at": "2026-01-27T09:00:00Z", "elapsedDays": 21, "stability": 178.23973770160026, "difficulty": 3.1373882622, "intervalDays": 178, "reps": 3, "lapses": 0},
+   {"grade": 3, "at": "2026-02-05T08:00:00Z", "elapsedDays": 8, "stability": 197.8727600253136, "difficulty": 3.2001450260718, "intervalDays": 198, "reps": 4, "lapses": 0},
+   {"grade": 3, "at": "2026-08-24T13:00:00Z", "elapsedDays": 200, "stability": 631.0643718320258, "difficulty": 3.260956330263574, "intervalDays": 631, "reps": 5, "lapses": 0}
+  ]},
+  {"name": "random #22", "desiredRetention": 0.95, "steps": [
+   {"grade": 3, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 3.7145, "difficulty": 5.1618, "intervalDays": 2, "reps": 1, "lapses": 0},
+   {"grade": 3, "at": "2026-02-14T09:00:00Z", "elapsedDays": 40, "stability": 63.08106756931627, "difficulty": 5.1618, "intervalDays": 29, "reps": 2, "lapses": 0},
+   {"grade": 3, "at": "2026-02-22T09:00:00Z", "elapsedDays": 8, "stability": 79.72825023151145, "difficulty": 5.1618, "intervalDays": 37, "reps": 3, "lapses": 0},
+   {"grade": 1, "at": "2026-05-23T09:00:00Z", "elapsedDays": 90, "stability": 6.968668535579168, "difficulty": 6.901155, "intervalDays": null, "reps": 4, "lapses": 1}
+  ]},
+  {"name": "random #23", "desiredRetention": 0.9, "steps": [
+   {"grade": 3, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 3.7145, "difficulty": 5.1618, "intervalDays": 4, "reps": 1, "lapses": 0},
+   {"grade": 3, "at": "2026-01-18T09:00:00Z", "elapsedDays": 13, "stability": 33.000104618326326, "difficulty": 5.1618, "intervalDays": 33, "reps": 2, "lapses": 0},
+   {"grade": 1, "at": "2026-01-23T09:00:00Z", "elapsedDays": 5, "stability": 4.07194652494705, "difficulty": 6.901155, "intervalDays": null, "reps": 3, "lapses": 1},
+   {"grade": 1, "at": "2026-01-28T09:00:00Z", "elapsedDays": 5, "stability": 1.5150866025396805, "difficulty": 8.586589995, "intervalDays": null, "reps": 4, "lapses": 2},
+   {"grade": 4, "at": "2026-01-29T09:00:00Z", "elapsedDays": 1, "stability": 5.402405045748835, "difficulty": 7.610744005155, "intervalDays": 5, "reps": 5, "lapses": 2},
+   {"grade": 3, "at": "2026-02-20T08:00:00Z", "elapsedDays": 21, "stability": 30.758120570986527, "difficulty": 7.534826740995195, "intervalDays": 31, "reps": 6, "lapses": 2},
+   {"grade": 3, "at": "2026-03-06T07:00:00Z", "elapsedDays": 13, "stability": 47.903629206534795, "difficulty": 7.461262912024344, "intervalDays": 48, "reps": 7, "lapses": 2},
+   {"grade": 4, "at": "2026-03-27T07:00:00Z", "elapsedDays": 21, "stability": 124.32701527624097, "difficulty": 6.520302061751589, "intervalDays": 124, "reps": 8, "lapses": 2},
+   {"grade": 3, "at": "2026-04-01T12:00:00Z", "elapsedDays": 5, "stability": 131.67494552096665, "difficulty": 6.478188497837289, "intervalDays": 132, "reps": 9, "lapses": 2},
+   {"grade": 2, "at": "2026-04-02T12:00:00Z", "elapsedDays": 1, "stability": 132.01058692162283, "difficulty": 7.307057954404333, "intervalDays": 132, "reps": 10, "lapses": 2}
+  ]},
+  {"name": "random #24", "desiredRetention": 0.95, "steps": [
+   {"grade": 3, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 3.7145, "difficulty": 5.1618, "intervalDays": 2, "reps": 1, "lapses": 0},
+   {"grade": 4, "at": "2026-01-08T08:00:00Z", "elapsedDays": 2, "stability": 20.565832680457206, "difficulty": 4.2921225000000005, "intervalDays": 9, "reps": 2, "lapses": 0},
+   {"grade": 4, "at": "2026-01-16T13:00:00Z", "elapsedDays": 8, "stability": 82.84531185443801, "difficulty": 3.4494050025000003, "intervalDays": 38, "reps": 3, "lapses": 0},
+   {"grade": 1, "at": "2026-01-25T12:00:00Z", "elapsedDays": 8, "stability": 6.242336312505661, "difficulty": 5.241844247422501, "intervalDays": null, "reps": 4, "lapses": 1},
+   {"grade": 1, "at": "2026-08-13T17:00:00Z", "elapsedDays": 200, "stability": 4.728200642743859, "difficulty": 6.978717875752403, "intervalDays": null, "reps": 5, "lapses": 2},
+   {"grade": 3, "at": "2026-08-15T17:00:00Z", "elapsedDays": 2, "stability": 8.682174784130114, "difficulty": 6.922393421604078, "intervalDays": 4, "reps": 6, "lapses": 2},
+   {"grade": 3, "at": "2027-03-03T22:00:00Z", "elapsedDays": 200, "stability": 129.46081825237965, "difficulty": 6.867815025534352, "intervalDays": 60, "reps": 7, "lapses": 2},
+   {"grade": 4, "at": "2027-03-25T21:00:00Z", "elapsedDays": 21, "stability": 209.75387576313068, "difficulty": 5.945251059742787, "intervalDays": 97, "reps": 8, "lapses": 2},
+   {"grade": 2, "at": "2027-06-24T02:00:00Z", "elapsedDays": 90, "stability": 239.9922710720281, "difficulty": 6.79064157689076, "intervalDays": 111, "reps": 9, "lapses": 2},
+   {"grade": 3, "at": "2027-06-25T07:00:00Z", "elapsedDays": 1, "stability": 241.25964327940179, "difficulty": 6.740147488007146, "intervalDays": 112, "reps": 10, "lapses": 2},
+   {"grade": 4, "at": "2027-07-01T06:00:00Z", "elapsedDays": 5, "stability": 259.6517356796265, "difficulty": 5.821541215878924, "intervalDays": 120, "reps": 11, "lapses": 2}
+  ]},
+  {"name": "random #25", "desiredRetention": 0.9, "steps": [
+   {"grade": 2, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 1.4003, "difficulty": 6.3916, "intervalDays": 1, "reps": 1, "lapses": 0},
+   {"grade": 3, "at": "2026-01-09T08:00:00Z", "elapsedDays": 3, "stability": 8.201711169166241, "difficulty": 6.3534762, "intervalDays": 8, "reps": 2, "lapses": 0},
+   {"grade": 2, "at": "2026-01-22T08:00:00Z", "elapsedDays": 13, "stability": 13.775227665889195, "difficulty": 7.1862117378, "intervalDays": 14, "reps": 3, "lapses": 0},
+   {"grade": 3, "at": "2026-01-25T13:00:00Z", "elapsedDays": 3, "stability": 18.745388646641974, "difficulty": 7.1234549739282, "intervalDays": 19, "reps": 4, "lapses": 0},
+   {"grade": 1, "at": "2026-02-15T13:00:00Z", "elapsedDays": 21, "stability": 3.5079789053662274, "difficulty": 8.801998669736424, "intervalDays": null, "reps": 5, "lapses": 1}
+  ]},
+  {"name": "random #26", "desiredRetention": 0.95, "steps": [
+   {"grade": 1, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 0.4872, "difficulty": 7.6214, "intervalDays": 1, "reps": 1, "lapses": 0},
+   {"grade": 3, "at": "2026-01-06T08:00:00Z", "elapsedDays": 0, "stability": 0.4872, "difficulty": 7.5451524, "intervalDays": 2, "reps": 2, "lapses": 0},
+   {"grade": 1, "at": "2026-01-14T13:00:00Z", "elapsedDays": 8, "stability": 0.5871182650592877, "difficulty": 9.2106234756, "intervalDays": null, "reps": 3, "lapses": 1},
+   {"grade": 2, "at": "2026-01-15T13:00:00Z", "elapsedDays": 1, "stability": 0.8213212908119113, "difficulty": 9.954787447856399, "intervalDays": 1, "reps": 4, "lapses": 1},
+   {"grade": 1, "at": "2026-01-23T13:00:00Z", "elapsedDays": 8, "stability": 0.7684792630548867, "difficulty": 10, "intervalDays": null, "reps": 5, "lapses": 2},
+   {"grade": 3, "at": "2026-04-23T13:00:00Z", "elapsedDays": 90, "stability": 6.311547773640977, "difficulty": 9.8500158, "intervalDays": 3, "reps": 6, "lapses": 2},
+   {"grade": 1, "at": "2026-05-01T13:00:00Z", "elapsedDays": 8, "stability": 1.935834925449668, "difficulty": 10, "intervalDays": null, "reps": 7, "lapses": 3},
+   {"grade": 2, "at": "2026-06-10T13:00:00Z", "elapsedDays": 40, "stability": 3.703168434111192, "difficulty": 10, "intervalDays": 2, "reps": 8, "lapses": 3},
+   {"grade": 3, "at": "2026-09-09T12:00:00Z", "elapsedDays": 90, "stability": 18.179729018398355, "difficulty": 9.8500158, "intervalDays": 8, "reps": 9, "lapses": 3},
+   {"grade": 3, "at": "2027-03-28T12:00:00Z", "elapsedDays": 200, "stability": 64.75241202418422, "difficulty": 9.7046811102, "intervalDays": 30, "reps": 10, "lapses": 3},
+   {"grade": 4, "at": "2027-04-05T12:00:00Z", "elapsedDays": 8, "stability": 75.33907761006314, "difficulty": 8.694174295783798, "intervalDays": 35, "reps": 11, "lapses": 3}
+  ]},
+  {"name": "random #27", "desiredRetention": 0.9, "steps": [
+   {"grade": 1, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 0.4872, "difficulty": 7.6214, "intervalDays": 1, "reps": 1, "lapses": 0},
+   {"grade": 4, "at": "2026-01-09T08:00:00Z", "elapsedDays": 3, "stability": 12.906143561651955, "difficulty": 6.6754749, "intervalDays": 13, "reps": 2, "lapses": 0}
+  ]},
+  {"name": "random #28", "desiredRetention": 0.9, "steps": [
+   {"grade": 4, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 13.8206, "difficulty": 3.9320000000000004, "intervalDays": 14, "reps": 1, "lapses": 0},
+   {"grade": 1, "at": "2026-02-14T09:00:00Z", "elapsedDays": 40, "stability": 3.799514392214594, "difficulty": 5.7094788, "intervalDays": null, "reps": 2, "lapses": 1},
+   {"grade": 3, "at": "2026-02-22T09:00:00Z", "elapsedDays": 8, "stability": 22.023616193605537, "difficulty": 5.6925007572, "intervalDays": 22, "reps": 3, "lapses": 1},
+   {"grade": 1, "at": "2026-09-10T09:00:00Z", "elapsedDays": 200, "stability": 6.470632842083292, "difficulty": 7.415404033726801, "intervalDays": null, "reps": 4, "lapses": 2},
+   {"grade": 3, "at": "2026-09-14T08:00:00Z", "elapsedDays": 3, "stability": 11.513537983474713, "difficulty": 7.34554230868127, "intervalDays": 12, "reps": 5, "lapses": 2},
+   {"grade": 4, "at": "2026-10-05T08:00:00Z", "elapsedDays": 21, "stability": 95.22990133828256, "difficulty": 6.40816879711215, "intervalDays": 95, "reps": 6, "lapses": 2},
+   {"grade": 2, "at": "2026-10-26T08:00:00Z", "elapsedDays": 21, "stability": 102.53440763130773, "difficulty": 7.239208864401673, "intervalDays": 103, "reps": 7, "lapses": 2},
+   {"grade": 2, "at": "2026-10-28T08:00:00Z", "elapsedDays": 2, "stability": 103.11134807690807, "difficulty": 8.04448668960522, "intervalDays": 103, "reps": 8, "lapses": 2},
+   {"grade": 3, "at": "2026-11-18T08:00:00Z", "elapsedDays": 21, "stability": 123.61925600450151, "difficulty": 7.955123402227458, "intervalDays": 124, "reps": 9, "lapses": 2}
+  ]},
+  {"name": "random #29", "desiredRetention": 0.9, "steps": [
+   {"grade": 4, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 13.8206, "difficulty": 3.9320000000000004, "intervalDays": 14, "reps": 1, "lapses": 0},
+   {"grade": 4, "at": "2026-02-15T08:00:00Z", "elapsedDays": 40, "stability": 288.54842380348, "difficulty": 3.1004463, "intervalDays": 289, "reps": 2, "lapses": 0},
+   {"grade": 2, "at": "2026-03-27T08:00:00Z", "elapsedDays": 40, "stability": 309.3071755605384, "difficulty": 4.0340257647, "intervalDays": 309, "reps": 3, "lapses": 0},
+   {"grade": 3, "at": "2026-04-01T13:00:00Z", "elapsedDays": 5, "stability": 319.42251961498926, "difficulty": 4.0689867659943, "intervalDays": 319, "reps": 4, "lapses": 0},
+   {"grade": 3, "at": "2026-05-11T13:00:00Z", "elapsedDays": 40, "stability": 398.60075322647293, "difficulty": 4.102863976248476, "intervalDays": 399, "reps": 5, "lapses": 0},
+   {"grade": 3, "at": "2026-05-12T13:00:00Z", "elapsedDays": 1, "stability": 400.5385977579979, "difficulty": 4.135690992984773, "intervalDays": 401, "reps": 6, "lapses": 0},
+   {"grade": 3, "at": "2026-05-21T12:00:00Z", "elapsedDays": 8, "stability": 415.9265723875207, "difficulty": 4.167500372202245, "intervalDays": 416, "reps": 7, "lapses": 0},
+   {"grade": 3, "at": "2026-05-22T12:00:00Z", "elapsedDays": 1, "stability": 417.83514609929756, "difficulty": 4.198323660663975, "intervalDays": 418, "reps": 8, "lapses": 0},
+   {"grade": 1, "at": "2026-06-12T17:00:00Z", "elapsedDays": 21, "stability": 11.57407172808592, "difficulty": 5.967546427183392, "intervalDays": null, "reps": 9, "lapses": 1},
+   {"grade": 2, "at": "2026-09-10T17:00:00Z", "elapsedDays": 90, "stability": 37.51177345932056, "difficulty": 6.812245787940707, "intervalDays": 38, "reps": 10, "lapses": 1},
+   {"grade": 3, "at": "2026-09-15T22:00:00Z", "elapsedDays": 5, "stability": 45.518679719100284, "difficulty": 6.761081968514545, "intervalDays": 46, "reps": 11, "lapses": 1},
+   {"grade": 2, "at": "2026-09-18T22:00:00Z", "elapsedDays": 3, "stability": 46.602894531761656, "difficulty": 7.581181727490594, "intervalDays": 47, "reps": 12, "lapses": 1}
+  ]},
+  {"name": "random #30", "desiredRetention": 0.95, "steps": [
+   {"grade": 3, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 3.7145, "difficulty": 5.1618, "intervalDays": 2, "reps": 1, "lapses": 0},
+   {"grade": 4, "at": "2026-01-07T14:00:00Z", "elapsedDays": 2, "stability": 20.565832680457206, "difficulty": 4.2921225000000005, "intervalDays": 9, "reps": 2, "lapses": 0},
+   {"grade": 4, "at": "2026-02-16T14:00:00Z", "elapsedDays": 40, "stability": 288.0400100974994, "difficulty": 3.4494050025000003, "intervalDays": 133, "reps": 3, "lapses": 0},
+   {"grade": 3, "at": "2026-02-20T13:00:00Z", "elapsedDays": 3, "stability": 294.68731930842256, "difficulty": 3.5024892474225, "intervalDays": 136, "reps": 4, "lapses": 0},
+   {"grade": 3, "at": "2026-04-01T13:00:00Z", "elapsedDays": 40, "stability": 381.1837913870508, "difficulty": 3.5539278807524024, "intervalDays": 176, "reps": 5, "lapses": 0},
+   {"grade": 2, "at": "2026-06-30T18:00:00Z", "elapsedDays": 90, "stability": 423.1078257370594, "difficulty": 4.4734494164490775, "intervalDays": 195, "reps": 6, "lapses": 0},
+   {"grade": 1, "at": "2026-07-03T18:00:00Z", "elapsedDays": 3, "stability": 11.478829477434692, "difficulty": 6.234143284539156, "intervalDays": null, "reps": 7, "lapses": 1},
+   {"grade": 2, "at": "2026-07-11T18:00:00Z", "elapsedDays": 8, "stability": 15.1436929726373, "difficulty": 7.070578142718442, "intervalDays": 7, "reps": 8, "lapses": 1},
+   {"grade": 3, "at": "2027-01-27T18:00:00Z", "elapsedDays": 200, "stability": 163.87852399136543, "difficulty": 7.01140602029417, "intervalDays": 75, "reps": 9, "lapses": 1},
+   {"grade": 3, "at": "2027-03-08T18:00:00Z", "elapsedDays": 40, "stability": 213.13890980412737, "difficulty": 6.95406823366505, "intervalDays": 98, "reps": 10, "lapses": 1},
+   {"grade": 3, "at": "2027-03-09T18:00:00Z", "elapsedDays": 1, "stability": 214.37692361196247, "difficulty": 6.8985079184214335, "intervalDays": 99, "reps": 11, "lapses": 1}
+  ]},
+  {"name": "random #31", "desiredRetention": 0.8, "steps": [
+   {"grade": 2, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 1.4003, "difficulty": 6.3916, "intervalDays": 3, "reps": 1, "lapses": 0},
+   {"grade": 2, "at": "2026-01-27T08:00:00Z", "elapsedDays": 21, "stability": 6.782127511074189, "difficulty": 7.2231537, "intervalDays": 16, "reps": 2, "lapses": 0},
+   {"grade": 3, "at": "2026-04-28T07:00:00Z", "elapsedDays": 90, "stability": 78.4004623038195, "difficulty": 7.1592517353, "intervalDays": 188, "reps": 3, "lapses": 0},
+   {"grade": 1, "at": "2026-05-19T12:00:00Z", "elapsedDays": 21, "stability": 5.930725465411778, "difficulty": 8.8366857315057, "intervalDays": null, "reps": 4, "lapses": 1},
+   {"grade": 3, "at": "2026-12-05T12:00:00Z", "elapsedDays": 200, "stability": 58.43203913535042, "difficulty": 8.722764273829023, "intervalDays": 140, "reps": 5, "lapses": 1},
+   {"grade": 3, "at": "2026-12-08T11:00:00Z", "elapsedDays": 2, "stability": 60.089741306898595, "difficulty": 8.612374381340324, "intervalDays": 144, "reps": 6, "lapses": 1},
+   {"grade": 4, "at": "2026-12-11T11:00:00Z", "elapsedDays": 3, "stability": 67.54447991667334, "difficulty": 7.635729075518774, "intervalDays": 162, "reps": 7, "lapses": 1},
+   {"grade": 2, "at": "2027-01-20T16:00:00Z", "elapsedDays": 40, "stability": 77.80826760306607, "difficulty": 8.428714774177692, "intervalDays": 187, "reps": 8, "lapses": 1},
+   {"grade": 4, "at": "2027-02-02T21:00:00Z", "elapsedDays": 13, "stability": 110.94902516926727, "difficulty": 7.457762916178184, "intervalDays": 266, "reps": 9, "lapses": 1},
+   {"grade": 1, "at": "2027-02-10T21:00:00Z", "elapsedDays": 8, "stability": 6.6004258248099426, "difficulty": 9.12594306577666, "intervalDays": null, "reps": 10, "lapses": 2},
+   {"grade": 1, "at": "2027-02-10T21:00:00Z", "elapsedDays": 0, "stability": 1.6473694354585577, "difficulty": 10, "intervalDays": null, "reps": 11, "lapses": 3},
+   {"grade": 1, "at": "2027-02-11T21:00:00Z", "elapsedDays": 1, "stability": 0.7226540728595229, "difficulty": 10, "intervalDays": null, "reps": 12, "lapses": 4}
+  ]},
+  {"name": "random #32", "desiredRetention": 0.85, "steps": [
+   {"grade": 4, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 13.8206, "difficulty": 3.9320000000000004, "intervalDays": 23, "reps": 1, "lapses": 0},
+   {"grade": 1, "at": "2026-01-06T14:00:00Z", "elapsedDays": 1, "stability": 2.6804166658323423, "difficulty": 5.7094788, "intervalDays": null, "reps": 2, "lapses": 1},
+   {"grade": 3, "at": "2026-02-15T14:00:00Z", "elapsedDays": 40, "stability": 50.207237486637766, "difficulty": 5.6925007572, "intervalDays": 82, "reps": 3, "lapses": 1},
+   {"grade": 3, "at": "2026-03-08T14:00:00Z", "elapsedDays": 21, "stability": 89.89949365826803, "difficulty": 5.6760490337268, "intervalDays": 147, "reps": 4, "lapses": 1},
+   {"grade": 4, "at": "2026-03-29T14:00:00Z", "elapsedDays": 21, "stability": 197.77798558404595, "difficulty": 4.790429813681269, "intervalDays": 324, "reps": 5, "lapses": 1},
+   {"grade": 1, "at": "2026-04-06T14:00:00Z", "elapsedDays": 8, "stability": 8.57339329096837, "difficulty": 6.541297289457149, "intervalDays": null, "reps": 6, "lapses": 2},
+   {"grade": 3, "at": "2026-04-27T14:00:00Z", "elapsedDays": 21, "stability": 43.60169240705787, "difficulty": 6.498532873483978, "intervalDays": 71, "reps": 7, "lapses": 2}
+  ]},
+  {"name": "random #33", "desiredRetention": 0.9, "steps": [
+   {"grade": 2, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 1.4003, "difficulty": 6.3916, "intervalDays": 1, "reps": 1, "lapses": 0},
+   {"grade": 3, "at": "2026-04-05T09:00:00Z", "elapsedDays": 90, "stability": 39.578879257965966, "difficulty": 6.3534762, "intervalDays": 40, "reps": 2, "lapses": 0},
+   {"grade": 1, "at": "2026-04-08T09:00:00Z", "elapsedDays": 3, "stability": 4.294098033306943, "difficulty": 8.0558892378, "intervalDays": null, "reps": 3, "lapses": 1},
+   {"grade": 3, "at": "2026-04-21T09:00:00Z", "elapsedDays": 13, "stability": 19.309354224367574, "difficulty": 7.966172471428201, "intervalDays": 19, "reps": 4, "lapses": 1},
+   {"grade": 4, "at": "2026-07-20T09:00:00Z", "elapsedDays": 90, "stability": 241.8972161197628, "difficulty": 7.009559424813927, "intervalDays": 242, "reps": 5, "lapses": 1},
+   {"grade": 3, "at": "2026-08-10T09:00:00Z", "elapsedDays": 21, "stability": 266.8646951897642, "difficulty": 6.952278882644695, "intervalDays": 267, "reps": 6, "lapses": 1},
+   {"grade": 3, "at": "2026-08-13T08:00:00Z", "elapsedDays": 2, "stability": 269.2660834167756, "difficulty": 6.896774037282709, "intervalDays": 269, "reps": 7, "lapses": 1},
+   {"grade": 1, "at": "2026-08-22T07:00:00Z", "elapsedDays": 8, "stability": 9.375100679985632, "difficulty": 8.582344842126945, "intervalDays": null, "reps": 8, "lapses": 2},
+   {"grade": 2, "at": "2026-11-21T06:00:00Z", "elapsedDays": 90, "stability": 21.066190947000585, "difficulty": 9.345985452021008, "intervalDays": 21, "reps": 9, "lapses": 2}
+  ]},
+  {"name": "random #34", "desiredRetention": 0.9, "steps": [
+   {"grade": 2, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 1.4003, "difficulty": 6.3916, "intervalDays": 1, "reps": 1, "lapses": 0},
+   {"grade": 3, "at": "2026-01-26T09:00:00Z", "elapsedDays": 21, "stability": 25.087921087474424, "difficulty": 6.3534762, "intervalDays": 25, "reps": 2, "lapses": 0},
+   {"grade": 4, "at": "2026-01-30T08:00:00Z", "elapsedDays": 3, "stability": 41.307054974777984, "difficulty": 5.4468567378, "intervalDays": 41, "reps": 3, "lapses": 0},
+   {"grade": 2, "at": "2026-02-01T08:00:00Z", "elapsedDays": 2, "stability": 42.26852270188194, "difficulty": 6.3076974789282, "intervalDays": 42, "reps": 4, "lapses": 0},
+   {"grade": 3, "at": "2026-05-02T08:00:00Z", "elapsedDays": 90, "stability": 172.81449796141098, "difficulty": 6.272174657081426, "intervalDays": 173, "reps": 5, "lapses": 0},
+   {"grade": 3, "at": "2026-05-23T13:00:00Z", "elapsedDays": 21, "stability": 203.6662970107678, "difficulty": 6.237753042711902, "intervalDays": 204, "reps": 6, "lapses": 0}
+  ]},
+  {"name": "random #35", "desiredRetention": 0.9, "steps": [
+   {"grade": 3, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 3.7145, "difficulty": 5.1618, "intervalDays": 4, "reps": 1, "lapses": 0},
+   {"grade": 4, "at": "2026-02-14T14:00:00Z", "elapsedDays": 40, "stability": 174.4230650455689, "difficulty": 4.2921225000000005, "intervalDays": 174, "reps": 2, "lapses": 0},
+   {"grade": 3, "at": "2026-03-07T14:00:00Z", "elapsedDays": 21, "stability": 218.14595932938897, "difficulty": 4.319082502500001, "intervalDays": 218, "reps": 3, "lapses": 0},
+   {"grade": 2, "at": "2026-09-24T13:00:00Z", "elapsedDays": 200, "stability": 302.1162365503982, "difficulty": 5.214884244922501, "intervalDays": 302, "reps": 4, "lapses": 0},
+   {"grade": 2, "at": "2026-10-07T13:00:00Z", "elapsedDays": 13, "stability": 307.07939594207517, "difficulty": 6.082916133329903, "intervalDays": 307, "reps": 5, "lapses": 0},
+   {"grade": 4, "at": "2027-01-05T13:00:00Z", "elapsedDays": 90, "stability": 665.7179722761101, "difficulty": 5.1846840331966755, "intervalDays": 666, "reps": 6, "lapses": 0},
+   {"grade": 3, "at": "2027-01-06T18:00:00Z", "elapsedDays": 1, "stability": 667.2414051138012, "difficulty": 5.1839746281675785, "intervalDays": 667, "reps": 7, "lapses": 0},
+   {"grade": 3, "at": "2027-01-08T18:00:00Z", "elapsedDays": 2, "stability": 670.2871687634918, "difficulty": 5.183287214694383, "intervalDays": 670, "reps": 8, "lapses": 0},
+   {"grade": 1, "at": "2027-01-16T23:00:00Z", "elapsedDays": 8, "stability": 13.479030398576537, "difficulty": 6.921976111038857, "intervalDays": null, "reps": 9, "lapses": 1},
+   {"grade": 2, "at": "2027-01-19T23:00:00Z", "elapsedDays": 3, "stability": 14.689439070286193, "difficulty": 7.7370881515966525, "intervalDays": 15, "reps": 10, "lapses": 1},
+   {"grade": 1, "at": "2027-02-02T04:00:00Z", "elapsedDays": 13, "stability": 2.984206135623318, "difficulty": 9.396609218897156, "intervalDays": null, "reps": 11, "lapses": 2},
+   {"grade": 3, "at": "2027-08-21T04:00:00Z", "elapsedDays": 200, "stability": 28.749869681835637, "difficulty": 9.265330133111345, "intervalDays": 29, "reps": 12, "lapses": 2},
+   {"grade": 3, "at": "2027-08-26T04:00:00Z", "elapsedDays": 5, "stability": 32.17374872554392, "difficulty": 9.138120698984892, "intervalDays": 32, "reps": 13, "lapses": 2}
+  ]},
+  {"name": "random #36", "desiredRetention": 0.95, "steps": [
+   {"grade": 3, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 3.7145, "difficulty": 5.1618, "intervalDays": 2, "reps": 1, "lapses": 0},
+   {"grade": 4, "at": "2026-01-19T08:00:00Z", "elapsedDays": 13, "stability": 87.92525607999735, "difficulty": 4.2921225000000005, "intervalDays": 40, "reps": 2, "lapses": 0},
+   {"grade": 4, "at": "2026-01-19T08:00:00Z", "elapsedDays": 0, "stability": 87.92525607999735, "difficulty": 3.4494050025000003, "intervalDays": 42, "reps": 3, "lapses": 0},
+   {"grade": 3, "at": "2026-04-19T08:00:00Z", "elapsedDays": 90, "stability": 298.4916049593595, "difficulty": 3.5024892474225, "intervalDays": 137, "reps": 4, "lapses": 0},
+   {"grade": 2, "at": "2026-05-02T08:00:00Z", "elapsedDays": 13, "stability": 304.9340987705801, "difficulty": 4.423605380752402, "intervalDays": 140, "reps": 5, "lapses": 0},
+   {"grade": 1, "at": "2026-05-03T08:00:00Z", "elapsedDays": 1, "stability": 10.137488712257387, "difficulty": 6.185844413949078, "intervalDays": null, "reps": 6, "lapses": 1},
+   {"grade": 3, "at": "2026-05-08T08:00:00Z", "elapsedDays": 5, "stability": 20.719856862130346, "difficulty": 6.154099037116657, "intervalDays": 10, "reps": 7, "lapses": 1},
+   {"grade": 3, "at": "2026-05-22T07:00:00Z", "elapsedDays": 13, "stability": 45.483664575160134, "difficulty": 6.12333776696604, "intervalDays": 21, "reps": 8, "lapses": 1},
+   {"grade": 3, "at": "2026-05-23T07:00:00Z", "elapsedDays": 1, "stability": 47.32303894452043, "difficulty": 6.093530096190093, "intervalDays": 22, "reps": 9, "lapses": 1}
+  ]},
+  {"name": "random #37", "desiredRetention": 0.85, "steps": [
+   {"grade": 3, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 3.7145, "difficulty": 5.1618, "intervalDays": 6, "reps": 1, "lapses": 0},
+   {"grade": 3, "at": "2026-07-24T09:00:00Z", "elapsedDays": 200, "stability": 111.41477737771002, "difficulty": 5.1618, "intervalDays": 182, "reps": 2, "lapses": 0},
+   {"grade": 3, "at": "2026-09-02T14:00:00Z", "elapsedDays": 40, "stability": 186.47273540640765, "difficulty": 5.1618, "intervalDays": 305, "reps": 3, "lapses": 0},
+   {"grade": 2, "at": "2027-03-21T19:00:00Z", "elapsedDays": 200, "stability": 260.2882935445481, "difficulty": 6.0314775, "intervalDays": 426, "reps": 4, "lapses": 0},
+   {"grade": 3, "at": "2027-03-27T18:00:00Z", "elapsedDays": 5, "stability": 267.67275176511686, "difficulty": 6.0045174975, "intervalDays": 438, "reps": 5, "lapses": 0},
+   {"grade": 1, "at": "2027-03-30T17:00:00Z", "elapsedDays": 2, "stability": 9.418156695095476, "difficulty": 7.7177482550775, "intervalDays": null, "reps": 6, "lapses": 1},
+   {"grade": 3, "at": "2027-03-31T17:00:00Z", "elapsedDays": 1, "stability": 10.938907408106541, "difficulty": 7.638513859170097, "intervalDays": 18, "reps": 7, "lapses": 1}
+  ]},
+  {"name": "random #38", "desiredRetention": 0.95, "steps": [
+   {"grade": 1, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 0.4872, "difficulty": 7.6214, "intervalDays": 1, "reps": 1, "lapses": 0},
+   {"grade": 3, "at": "2026-01-14T08:00:00Z", "elapsedDays": 8, "stability": 7.752862332538646, "difficulty": 7.5451524, "intervalDays": 4, "reps": 2, "lapses": 0},
+   {"grade": 2, "at": "2026-08-03T07:00:00Z", "elapsedDays": 200, "stability": 29.721005359393295, "difficulty": 8.3409459756, "intervalDays": 14, "reps": 3, "lapses": 0},
+   {"grade": 4, "at": "2027-02-19T12:00:00Z", "elapsedDays": 200, "stability": 388.88606025973814, "difficulty": 7.3727149503564, "intervalDays": 179, "reps": 4, "lapses": 0},
+   {"grade": 4, "at": "2027-02-22T11:00:00Z", "elapsedDays": 2, "stability": 394.7651357113506, "difficulty": 6.434499086895351, "intervalDays": 182, "reps": 5, "lapses": 0},
+   {"grade": 3, "at": "2027-02-24T10:00:00Z", "elapsedDays": 1, "stability": 396.04956857741666, "difficulty": 6.395045415201595, "intervalDays": 183, "reps": 6, "lapses": 0},
+   {"grade": 3, "at": "2027-09-12T10:00:00Z", "elapsedDays": 200, "stability": 641.0698962848317, "difficulty": 6.356814807330346, "intervalDays": 295, "reps": 7, "lapses": 0},
+   {"grade": 2, "at": "2028-03-30T10:00:00Z", "elapsedDays": 200, "stability": 694.7300897580681, "difficulty": 7.189446848303104, "intervalDays": 320, "reps": 8, "lapses": 0},
+   {"grade": 3, "at": "2028-04-05T09:00:00Z", "elapsedDays": 5, "stability": 699.6890696090029, "difficulty": 7.126589796005708, "intervalDays": 322, "reps": 9, "lapses": 0},
+   {"grade": 3, "at": "2028-04-13T09:00:00Z", "elapsedDays": 8, "stability": 707.7425760390263, "difficulty": 7.065681312329531, "intervalDays": 326, "reps": 10, "lapses": 0},
+   {"grade": 2, "at": "2028-10-30T14:00:00Z", "elapsedDays": 200, "stability": 752.7444800299248, "difficulty": 7.876338491647315, "intervalDays": 347, "reps": 11, "lapses": 0},
+   {"grade": 1, "at": "2029-05-18T14:00:00Z", "elapsedDays": 200, "stability": 14.234416855689387, "difficulty": 9.531542798406248, "intervalDays": null, "reps": 12, "lapses": 1},
+   {"grade": 3, "at": "2029-05-21T14:00:00Z", "elapsedDays": 3, "stability": 16.141049304468673, "difficulty": 9.396080771655654, "intervalDays": 8, "reps": 13, "lapses": 1}
+  ]},
+  {"name": "random #39", "desiredRetention": 0.85, "steps": [
+   {"grade": 3, "at": "2026-01-05T09:00:00Z", "elapsedDays": 0, "stability": 3.7145, "difficulty": 5.1618, "intervalDays": 6, "reps": 1, "lapses": 0},
+   {"grade": 3, "at": "2026-07-24T09:00:00Z", "elapsedDays": 200, "stability": 111.41477737771002, "difficulty": 5.1618, "intervalDays": 182, "reps": 2, "lapses": 0},
+   {"grade": 3, "at": "2026-07-27T14:00:00Z", "elapsedDays": 3, "stability": 117.25614452577138, "difficulty": 5.1618, "intervalDays": 192, "reps": 3, "lapses": 0},
+   {"grade": 3, "at": "2026-09-05T14:00:00Z", "elapsedDays": 40, "stability": 191.93676857998042, "difficulty": 5.1618, "intervalDays": 314, "reps": 4, "lapses": 0},
+   {"grade": 1, "at": "2026-12-05T13:00:00Z", "elapsedDays": 90, "stability": 9.06240904367254, "difficulty": 6.901155, "intervalDays": null, "reps": 5, "lapses": 1},
+   {"grade": 4, "at": "2026-12-13T18:00:00Z", "elapsedDays": 8, "stability": 49.48819227456553, "difficulty": 5.977557495, "intervalDays": 81, "reps": 6, "lapses": 1},
+   {"grade": 4, "at": "2026-12-19T17:00:00Z", "elapsedDays": 5, "stability": 76.17147383196334, "difficulty": 5.082591512655, "intervalDays": 125, "reps": 7, "lapses": 1},
+   {"grade": 3, "at": "2026-12-20T17:00:00Z", "elapsedDays": 1, "stability": 78.25359702333432, "difficulty": 5.085046975762695, "intervalDays": 128, "reps": 8, "lapses": 1},
+   {"grade": 3, "at": "2026-12-21T17:00:00Z", "elapsedDays": 1, "stability": 80.32728063427417, "difficulty": 5.087426319514051, "intervalDays": 132, "reps": 9, "lapses": 1},
+   {"grade": 3, "at": "2026-12-22T22:00:00Z", "elapsedDays": 1, "stability": 82.39281014370734, "difficulty": 5.089731903609116, "intervalDays": 135, "reps": 10, "lapses": 1},
+   {"grade": 3, "at": "2026-12-26T21:00:00Z", "elapsedDays": 3, "stability": 88.54866018773123, "difficulty": 5.091966014597233, "intervalDays": 145, "reps": 11, "lapses": 1}
+  ]}
+ ]}

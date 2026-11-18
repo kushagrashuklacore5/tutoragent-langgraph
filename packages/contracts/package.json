@@ -4,6 +4,17 @@
   "private": true,
   "type": "module",
   "description": "Public, versioned types shared between the platform and modules (manifest, request context).",
-  "exports": { ".": "./src/index.ts" },
-  "dependencies": { "@platform/core": "*", "@platform/tenancy-db": "*", "@platform/jobs": "*", "@platform/events": "*", "@platform/ai-gateway": "*" }
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@platform/core": "*",
+    "@platform/tenancy-db": "*",
+    "@platform/jobs": "*",
+    "@platform/events": "*",
+    "@platform/ai-gateway": "*",
+    "@platform/documents": "*",
+    "@platform/retrieval": "*",
+    "@platform/math-client": "*"
+  }
 }

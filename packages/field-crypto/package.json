@@ -1,0 +1,14 @@
+{
+  "name": "@platform/field-crypto",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Field-level encryption at rest (AES-256-GCM) with per-tenant data keys wrapped by the platform KeyManager.",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@platform/core": "*",
+    "@platform/observability": "*",
+    "@platform/tenancy-db": "*",
+    "@platform/ai-gateway": "*"
+  }
+}

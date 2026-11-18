@@ -1,0 +1,12 @@
+{
+  "environment": "eval",
+  "deployments": [
+    {
+      "name": "scripted-leaky",
+      "adapter": "fake",
+      "model": "scripted-leaky",
+      "fakeResponder": "../socratic/fake-tutor.ts",
+      "pricing": { "currency": "INR", "inputPerMTok": 100, "outputPerMTok": 400, "source": "synthetic (fake adapter)" }
+    }
+  ]
+}

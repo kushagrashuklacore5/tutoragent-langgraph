@@ -4,7 +4,7 @@ import { currentTrace, logger, withSpan } from '@platform/observability'
 import {
   GatewayError, checkBaseUrl, createHttpClient,
   type Capabilities, type DiscoveredModel, type EmbedResult, type GenerateRequest, type GenerateResult, type Message,
-  type ProviderAdapter, type ResolvedConnection, type StreamEvent, type ToolCall, type ToolChoice, type ToolDefinition, type Usage,
+  type ProviderAdapter, type ResolvedConnection, type StreamEvent, type ToolCall, type ToolChoice, type ToolDefinition, type TranscribeRequest, type TranscribeResult, type Usage,
 } from '@platform/ai-adapter-kit'
 import type { SystemDatabase } from '@platform/tenancy-db/system'
 import { recordSystemAudit } from '@platform/audit'
@@ -71,6 +71,8 @@ export interface GatewayOptions {
   /** retries on the same deployment for retryable errors before falling back */
   sameDeploymentRetries?: number
   retryDelayMs?: number
+  /** longest provider-advised wait (Retry-After) honoured before falling back instead (default 20 s) */
+  maxRetryWaitMs?: number
   /** circuit breaker: consecutive failures before a deployment is skipped, and for how long */
   breakerThreshold?: number
   breakerOpenMs?: number
@@ -157,11 +159,12 @@ export function createGateway(o: GatewayOptions) {
     breaker.set(id, b)
   }
 
-  async function prepare(taskId: string, ctx: CallContext, op: 'generate' | 'stream' | 'embed') {
+  async function prepare(taskId: string, ctx: CallContext, op: 'generate' | 'stream' | 'embed' | 'transcribe') {
     const task = tasks.get(taskId)
     if (!task) throw new GatewayError('unknown_task', `unknown AI task ${taskId}`)
     const declaredOp = task.requires.operation
-    if (op === 'embed' ? declaredOp !== 'embed' : declaredOp === 'embed') throw new GatewayError('invalid_request', `task ${taskId} is declared for ${declaredOp}`)
+    const special = (x: string) => x === 'embed' || x === 'transcribe'
+    if (special(op) || special(declaredOp) ? op !== declaredOp : false) throw new GatewayError('invalid_request', `task ${taskId} is declared for ${declaredOp}`)
     if ((await budgetExceeded(o.system, ctx.tenantId, task.owner)).exceeded) throw new GatewayError('budget_exceeded', 'AI budget for this period is exhausted')
     const policy = await store.tenantPolicy(ctx.tenantId)
     const { eligible, rejected, route } = await resolveCandidates(routingCtx, task, ctx.tenantId, policy)
@@ -190,6 +193,15 @@ export function createGateway(o: GatewayOptions) {
     } catch (e) {
       return { ok: false, error: `not valid JSON: ${(e as Error).message}` }
     }
+  }
+
+  /**
+   * How long to wait before retrying on the same deployment: the provider's advice when given (rate
+   * limits), else linear backoff. null = the advised wait is too long; fall back / fail instead of stalling.
+   */
+  function retryWait(err: GatewayError, n: number): number | null {
+    if (err.retryAfterMs !== undefined) return err.retryAfterMs <= (o.maxRetryWaitMs ?? 20_000) ? err.retryAfterMs + 50 : null
+    return (o.retryDelayMs ?? 200) * n
   }
 
   /** Run a generate task with routing, retries, eligible-only fallback, structured-output validation and metering. */
@@ -233,9 +245,11 @@ export function createGateway(o: GatewayOptions) {
             const err = e instanceof GatewayError ? e : new GatewayError('provider_error', (e as Error).message)
             lastErr = err
             await meter(task, ctx, c, attempt, i > 0, start, { status: 'error', errorKind: err.kind })
-            if (err.retryable || err.fallbackEligible) breakerRecord(c.deployment.id, false)
-            if (err.retryable && r < retries) {
-              await new Promise((res) => setTimeout(res, (o.retryDelayMs ?? 200) * (r + 1)))
+            // a rate limit is the provider pacing us, not a health failure: it must not trip the circuit breaker
+            if ((err.retryable || err.fallbackEligible) && err.kind !== 'rate_limited') breakerRecord(c.deployment.id, false)
+            const wait = retryWait(err, r + 1)
+            if (err.retryable && r < retries && wait !== null) {
+              await new Promise((res) => setTimeout(res, wait))
               continue
             }
             if (!err.fallbackEligible) throw err
@@ -296,7 +310,7 @@ export function createGateway(o: GatewayOptions) {
         const err = e instanceof GatewayError ? e : new GatewayError('provider_error', (e as Error).message)
         lastErr = err
         await meter(task, ctx, c, attempt, i > 0, start, { status: 'error', errorKind: err.kind, usage, ttftMs: ttft })
-        if (err.fallbackEligible) breakerRecord(c.deployment.id, false)
+        if (err.fallbackEligible && err.kind !== 'rate_limited') breakerRecord(c.deployment.id, false)
         if (sentOutput || !err.fallbackEligible) throw err
       }
     }
@@ -324,8 +338,9 @@ export function createGateway(o: GatewayOptions) {
       } catch (e) {
         const err = e instanceof GatewayError ? e : new GatewayError('provider_error', (e as Error).message)
         await meter(task, ctx, c, attempt, false, start, { status: 'error', errorKind: err.kind })
-        if (!err.retryable || attempt > retries) throw err
-        await new Promise((res) => setTimeout(res, (o.retryDelayMs ?? 200) * attempt))
+        const wait = retryWait(err, attempt)
+        if (!err.retryable || attempt > retries || wait === null) throw err
+        await new Promise((res) => setTimeout(res, wait))
       }
     }
   }
@@ -415,6 +430,19 @@ export function createGateway(o: GatewayOptions) {
       await audit(actor, c.tenant_id, enabled ? 'ai.connection.enabled' : 'ai.connection.disabled', 'ai_connection', id)
     },
 
+    /**
+     * Record a reviewed data policy (e.g. after the provider's terms were checked and ZDR enabled).
+     * Audited with the before/after values, because it changes which data classes may be routed here.
+     */
+    async setDataPolicy(actor: Actor, id: string, dataPolicy: DataPolicy) {
+      if (!isDataPolicy(dataPolicy)) throw badRequest('data_policy_invalid', 'dataPolicy is incomplete')
+      if (dataPolicy.termsVerified && !dataPolicy.sourceOfTerms?.trim()) throw badRequest('data_policy_invalid', 'termsVerified requires sourceOfTerms')
+      const c = await admin.getConnection(actor, id)
+      await o.system.query('update platform.ai_connections set data_policy = $2, version = version + 1, updated_at = now() where id = $1', [id, JSON.stringify(dataPolicy)])
+      await audit(actor, c.tenant_id, 'ai.connection.data_policy_changed', 'ai_connection', id, { before: c.data_policy, after: dataPolicy })
+      return { id, dataPolicy }
+    },
+
     async testConnection(actor: Actor, id: string) {
       const c = await admin.getConnection(actor, id)
       const result = await adapterFor(c.adapter).testConnection(await resolveConnection(c))
@@ -459,9 +487,17 @@ export function createGateway(o: GatewayOptions) {
       if (!m.rows[0]?.approved) throw badRequest('model_not_approved', `Model ${c.adapter}/${input.modelId} is not approved in the registry`)
       const declared = narrow(normalizeCapabilities(m.rows[0].declared), c.enabled_capabilities)
       const id = newId()
-      await o.system.query(
-        `insert into platform.ai_deployments (id, tenant_id, connection_id, model_id, declared, pricing) values ($1,$2,$3,$4,$5,$6)`,
-        [id, c.tenant_id, c.id, input.modelId, JSON.stringify(declared), input.pricing ? JSON.stringify(input.pricing) : null])
+      try {
+        await o.system.query(
+          `insert into platform.ai_deployments (id, tenant_id, connection_id, model_id, declared, pricing) values ($1,$2,$3,$4,$5,$6)`,
+          [id, c.tenant_id, c.id, input.modelId, JSON.stringify(declared), input.pricing ? JSON.stringify(input.pricing) : null])
+      } catch (e) {
+        if ((e as { code?: string }).code === '23505') {
+          const existing = (await o.system.query<{ id: string }>('select id from platform.ai_deployments where connection_id = $1 and model_id = $2', [c.id, input.modelId])).rows[0]
+          throw new AppError('deployment_exists', `This connection already has a deployment of ${input.modelId}`, { status: 409, details: { deploymentId: existing?.id ?? null } })
+        }
+        throw e
+      }
       await audit(actor, c.tenant_id, 'ai.deployment.created', 'ai_deployment', id, { model: input.modelId })
       return (await store.deployment(id))!
     },
@@ -540,7 +576,53 @@ export function createGateway(o: GatewayOptions) {
     },
   }
 
-  return { tasks, run, stream, embed, admin, store }
+  /**
+   * The deployment a task would use for this tenant right now (no model call, no metering). Used to
+   * key caches by the exact model so a routing change can never serve stale vectors.
+   */
+  async function currentRoute(taskId: string, ctx: Pick<CallContext, 'tenantId'>): Promise<{ deploymentId: string; adapter: string; modelId: string } | null> {
+    const task = tasks.get(taskId)
+    if (!task) return null
+    const { eligible } = await resolveCandidates(routingCtx, task, ctx.tenantId, await store.tenantPolicy(ctx.tenantId))
+    const c = eligible[0]
+    return c ? { deploymentId: c.deployment.id, adapter: c.connection.adapter, modelId: c.deployment.model_id } : null
+  }
+
+  /** Speech-to-text with routing, retries, eligible-only fallback and metering (duration recorded as latency; no token usage). */
+  async function transcribe(taskId: string, req: TranscribeRequest, ctx: CallContext): Promise<TranscribeResult & { route: RouteInfo }> {
+    return withSpan(`ai.transcribe ${taskId}`, async () => {
+      const { task, candidates } = await prepare(taskId, ctx, 'transcribe')
+      let attempt = 0
+      let lastErr: unknown
+      for (const [i, c] of candidates.entries()) {
+        const adapter = adapterFor(c.connection.adapter)
+        if (!adapter.transcribe || breakerOpen(c.deployment.id)) continue
+        const conn = await resolveConnection(c.connection)
+        for (let r = 0; r <= retries; r++) {
+          attempt++
+          const start = performance.now()
+          try {
+            const out = await adapter.transcribe(conn, c.deployment.model_id, req, ctx.signal)
+            breakerRecord(c.deployment.id, true)
+            await meter(task, ctx, c, attempt, i > 0, start, { status: 'ok', usage: out.usage })
+            return { ...out, route: { deploymentId: c.deployment.id, connectionId: c.connection.id, adapter: c.connection.adapter, modelId: c.deployment.model_id, attempt, fallback: i > 0 } }
+          } catch (e) {
+            const err = e instanceof GatewayError ? e : new GatewayError('provider_error', (e as Error).message)
+            lastErr = err
+            await meter(task, ctx, c, attempt, i > 0, start, { status: 'error', errorKind: err.kind })
+            if ((err.retryable || err.fallbackEligible) && err.kind !== 'rate_limited') breakerRecord(c.deployment.id, false)
+            const wait = retryWait(err, r + 1)
+            if (err.retryable && r < retries && wait !== null) { await new Promise((res) => setTimeout(res, wait)); continue }
+            if (!err.fallbackEligible) throw err
+            break
+          }
+        }
+      }
+      throw lastErr ?? new GatewayError('unsupported_capability', `no deployment for ${taskId} supports transcription`)
+    })
+  }
+
+  return { tasks, run, stream, embed, transcribe, admin, store, currentRoute }
 }
 
 export type Gateway = ReturnType<typeof createGateway>

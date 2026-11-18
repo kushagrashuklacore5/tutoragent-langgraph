@@ -1,0 +1,203 @@
+@import "tailwindcss";
+
+/* Ek Bharat.AI study desk tokens. Brand: navy, teal, saffron. Colour carries meaning only
+   (source type, state, progress). Light-first; a second token set for dark. */
+@theme {
+  --font-sans: "Manrope", "Mukta", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Instrument Serif", "Mukta", ui-serif, Georgia, serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --color-bg: #e4eaed;
+  --color-surface: #f8fafa;
+  --color-surface-2: #eef2f4;
+  --color-line: rgb(23 46 66 / 0.13);
+  --color-line-strong: rgb(23 46 66 / 0.26);
+  --color-fg: #172e42;
+  --color-fg-soft: #2c475d;
+  --color-muted: #4a6275;
+  --color-faint: #6b8394;
+  --color-navy: #102a40;
+  --color-on-navy: #eaf1f4;
+  --color-accent: #1f6f6c;
+  --color-on-accent: #ffffff;
+  --color-focus: #1d6a80;
+
+  /* semantic: source labels */
+  --color-src-course: #1f6f6c;
+  --color-src-course-bg: #e0efee;
+  --color-src-general: #4a6275;
+  --color-src-general-bg: #e9eef1;
+  --color-src-example: #7a5a2a;
+  --color-src-example-bg: #fbf5ea;
+  --color-src-example-line: #a9834f;
+  --color-src-uncertain: #77530f;
+  --color-src-uncertain-bg: #fbf0d9;
+
+  /* semantic: state */
+  --color-ok: #2f6b48;
+  --color-ok-bg: #e3f0e7;
+  --color-warn: #77530f;
+  --color-warn-bg: #fbf0d9;
+  --color-danger: #a33c3c;
+  --color-danger-bg: #f8e5e5;
+
+  /* mastery scale 0..4 (with text labels everywhere) */
+  --color-mastery-0: #8a9aa6;
+  --color-mastery-1: #a9834f;
+  --color-mastery-2: #2d7f8a;
+  --color-mastery-3: #1f6f6c;
+  --color-mastery-4: #2f6b48;
+}
+
+:root[data-theme="dark"] {
+  --color-bg: #0b2034;
+  --color-surface: #102a40;
+  --color-surface-2: #15334c;
+  --color-line: rgb(255 255 255 / 0.1);
+  --color-line-strong: rgb(255 255 255 / 0.22);
+  --color-fg: #eaf1f4;
+  --color-fg-soft: #bfd1db;
+  --color-muted: #9bb3c2;
+  --color-faint: #7d98aa;
+  --color-navy: #071726;
+  --color-on-navy: #eaf1f4;
+  --color-accent: #5cc3be;
+  --color-on-accent: #0b2034;
+  --color-focus: #9ad5e5;
+  --color-src-course: #7ad3ce;
+  --color-src-course-bg: rgb(92 195 190 / 0.13);
+  --color-src-general: #bfd1db;
+  --color-src-general-bg: rgb(255 255 255 / 0.07);
+  --color-src-example: #e0c49b;
+  --color-src-example-bg: rgb(213 182 138 / 0.1);
+  --color-src-example-line: #d5b68a;
+  --color-src-uncertain: #ebcf9a;
+  --color-src-uncertain-bg: rgb(226 196 143 / 0.13);
+  --color-ok: #9ccfa9;
+  --color-ok-bg: rgb(140 195 155 / 0.13);
+  --color-warn: #ebcf9a;
+  --color-warn-bg: rgb(226 196 143 / 0.13);
+  --color-danger: #f29a9a;
+  --color-danger-bg: rgb(239 140 140 / 0.13);
+  --color-mastery-0: #6d8698;
+  --color-mastery-1: #d5b68a;
+  --color-mastery-2: #7cc0cc;
+  --color-mastery-3: #5cc3be;
+  --color-mastery-4: #8cc39b;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-bg: #0b2034;
+    --color-surface: #102a40;
+    --color-surface-2: #15334c;
+    --color-line: rgb(255 255 255 / 0.1);
+    --color-line-strong: rgb(255 255 255 / 0.22);
+    --color-fg: #eaf1f4;
+    --color-fg-soft: #bfd1db;
+    --color-muted: #9bb3c2;
+    --color-faint: #7d98aa;
+    --color-navy: #071726;
+    --color-on-navy: #eaf1f4;
+    --color-accent: #5cc3be;
+    --color-on-accent: #0b2034;
+    --color-focus: #9ad5e5;
+    --color-src-course: #7ad3ce;
+    --color-src-course-bg: rgb(92 195 190 / 0.13);
+    --color-src-general: #bfd1db;
+    --color-src-general-bg: rgb(255 255 255 / 0.07);
+    --color-src-example: #e0c49b;
+    --color-src-example-bg: rgb(213 182 138 / 0.1);
+    --color-src-example-line: #d5b68a;
+    --color-src-uncertain: #ebcf9a;
+    --color-src-uncertain-bg: rgb(226 196 143 / 0.13);
+    --color-ok: #9ccfa9;
+    --color-ok-bg: rgb(140 195 155 / 0.13);
+    --color-warn: #ebcf9a;
+    --color-warn-bg: rgb(226 196 143 / 0.13);
+    --color-danger: #f29a9a;
+    --color-danger-bg: rgb(239 140 140 / 0.13);
+    --color-mastery-0: #6d8698;
+    --color-mastery-1: #d5b68a;
+    --color-mastery-2: #7cc0cc;
+    --color-mastery-3: #5cc3be;
+    --color-mastery-4: #8cc39b;
+    color-scheme: dark;
+  }
+}
+
+html { background: var(--color-bg); -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
+}
+:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; border-radius: 4px; }
+h1:focus { outline: none; }
+::selection { background: rgb(47 127 168 / 0.22); }
+
+/* readable long-form: tutor answers, reader pages */
+.prose-desk { line-height: 1.65; overflow-wrap: anywhere; }
+.prose-desk p + p, .prose-desk p + ul, .prose-desk ul + p, .prose-desk p + ol, .prose-desk ol + p { margin-top: 0.6em; }
+.prose-desk ul { list-style: disc; padding-left: 1.3em; }
+.prose-desk ol { list-style: decimal; padding-left: 1.4em; }
+.prose-desk li + li { margin-top: 0.2em; }
+.prose-desk h3, .prose-desk h4 { font-weight: 650; margin: 0.8em 0 0.3em; }
+.prose-desk blockquote { border-left: 3px solid var(--color-line-strong); padding-left: 0.8em; color: var(--color-fg-soft); }
+.prose-desk a { color: var(--color-accent); text-decoration: underline; text-underline-offset: 2px; }
+.math-inline { font-family: var(--font-mono); font-size: 0.92em; background: var(--color-surface-2); padding: 0 0.25em; border-radius: 3px; }
+.math-block, .code-block { font-family: var(--font-mono); font-size: 0.9em; background: var(--color-surface-2); padding: 0.6em 0.8em; border-radius: 6px; overflow-x: auto; white-space: pre; margin: 0.6em 0; }
+
+/* "not enough evidence": grey and hatched, never coloured as a score */
+.hatched { background-image: repeating-linear-gradient(135deg, transparent 0 4px, var(--color-line-strong) 4px 5px); }
+
+dialog::backdrop { background: rgb(7 23 38 / 0.45); }
+dialog { color: var(--color-fg); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .anim { transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease, transform 160ms ease, width 180ms ease; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+
+/* ── Learning Studio: the book ─────────────────────────────────────────── */
+:root { --paper: #fbf8f1; --paper-edge: #e6dfcf; --paper-ink: #1d2b36; --paper-muted: #5b6b77; --paper-shadow: rgb(16 42 64 / 0.18); --spine: rgb(16 42 64 / 0.16); --mark: #fde68a; --lecture: #1f6f6c; }
+:root[data-theme="dark"] { --paper: #1a2f42; --paper-edge: #23405a; --paper-ink: #e8eff3; --paper-muted: #a9bccb; --paper-shadow: rgb(0 0 0 / 0.45); --spine: rgb(0 0 0 / 0.35); --mark: #8a6d1e; --lecture: #6fc2bd; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --paper: #1a2f42; --paper-edge: #23405a; --paper-ink: #e8eff3; --paper-muted: #a9bccb; --paper-shadow: rgb(0 0 0 / 0.45); --spine: rgb(0 0 0 / 0.35); --mark: #8a6d1e; --lecture: #6fc2bd; } }
+
+.studio-cover { background: linear-gradient(135deg, var(--color-navy), #1f4f6c); color: var(--color-on-navy); box-shadow: 0 10px 24px -12px var(--paper-shadow), inset 6px 0 0 rgb(255 255 255 / 0.08); min-height: 9.5rem; }
+.studio-cover:hover { transform: translateY(-2px); }
+.book-stage { perspective: 2200px; }
+.book-spread { display: grid; gap: 0; transform-origin: top center; }
+.book-spread.two { grid-template-columns: 1fr 1fr; }
+.book-page { position: relative; background: var(--paper); color: var(--paper-ink); border: 1px solid var(--paper-edge); box-shadow: 0 18px 40px -22px var(--paper-shadow), 0 2px 6px -3px var(--paper-shadow); padding: clamp(1rem, 2.6vw, 2.25rem); min-height: min(78dvh, 56rem); font-size: 1.02rem; line-height: 1.68; overflow-wrap: anywhere; }
+.book-spread.two .book-page:first-child { border-radius: 10px 2px 2px 10px; background-image: linear-gradient(to left, var(--spine), transparent 2.2rem); }
+.book-spread.two .book-page:last-child { border-radius: 2px 10px 10px 2px; background-image: linear-gradient(to right, var(--spine), transparent 2.2rem); }
+.book-spread:not(.two) .book-page { border-radius: 10px; }
+.book-page h2 { font-family: var(--font-serif, Georgia, serif); font-size: 1.55rem; line-height: 1.25; margin-bottom: 0.6em; }
+.book-block { position: relative; border-radius: 8px; padding: 0.35rem 0.55rem; margin: 0 -0.55rem 0.75rem; scroll-margin: 6rem; }
+.book-block.is-lecture { box-shadow: inset 3px 0 0 var(--lecture); background: color-mix(in srgb, var(--lecture) 9%, transparent); }
+.book-block.flash { outline: 2px solid var(--color-focus); }
+.book-block mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1px; }
+.book-chip { font-size: 0.72rem; line-height: 1; padding: 0.25rem 0.45rem; border-radius: 999px; border: 1px solid var(--paper-edge); color: var(--paper-muted); white-space: nowrap; }
+.book-chip.source { color: var(--color-src-course); background: var(--color-src-course-bg); border-color: transparent; }
+.book-chip.uncertain { color: var(--color-src-uncertain); background: var(--color-src-uncertain-bg); border-color: transparent; }
+.book-ribbon { position: absolute; top: -1px; right: 1.4rem; width: 1.1rem; height: 2.4rem; clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%); background: var(--paper-edge); }
+.book-ribbon.on { background: #c2410c; }
+.book-select-pop { position: fixed; z-index: 40; transform: translate(-50%, calc(-100% - 10px)); }
+@media (prefers-reduced-motion: no-preference) {
+  .flip-next { animation: flip-next 420ms cubic-bezier(.2,.7,.2,1); transform-origin: left center; }
+  .flip-prev { animation: flip-prev 420ms cubic-bezier(.2,.7,.2,1); transform-origin: right center; }
+  .book-block.streamed { animation: ink-in 380ms ease-out both; }
+  .book-zoom { transition: transform 200ms ease; }
+}
+@keyframes flip-next { from { transform: rotateY(-14deg) translateX(18px); opacity: 0.35; } to { transform: none; opacity: 1; } }
+@keyframes flip-prev { from { transform: rotateY(14deg) translateX(-18px); opacity: 0.35; } to { transform: none; opacity: 1; } }
+@keyframes ink-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media print { .book-page { box-shadow: none; break-after: page; } }

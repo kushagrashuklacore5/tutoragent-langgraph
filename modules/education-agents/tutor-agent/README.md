@@ -20,7 +20,8 @@ Remove the entry from `modules.config.json` (disables; data kept), then
 and `module:verify-absent education.tutor`.
 
 ## Status
-Implemented: T1 scaffold, T2 courses/concepts/prerequisites/approval, T4 learner model, T6 orchestrator (without retrieval),
-T8 practice for educator-authored MCQ/numeric items, T9 FSRS revision, T10 planner + recovery.
-Not yet: T5 materials/Ask-my-notes (needs documents & retrieval, F7), AI-generated items (needs SymPy, F8), T7 teach-back,
-T11 generators, T12 UI, T13 educator aggregates.
+Implemented: courses/concepts/prerequisites, learner model, Socratic tutor with retrieval, citations and maths checks,
+materials and Ask-My-Notes, practice (MCQ/numeric/expression), misconception diagnosis, FSRS revision, planner and recovery,
+coach / next-best action, voice input, assessment engine (generation, marking, review, recovery), educator dashboards, and the
+agentic study companion (`src/agent/`: onboarding, roadmap proposals with approval, tool registry, background workflows).
+Not yet: teach-back, web resource search, server-side speech output.
