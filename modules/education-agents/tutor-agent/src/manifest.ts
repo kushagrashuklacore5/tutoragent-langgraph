@@ -24,6 +24,8 @@ import { studioRoutes } from './studio/routes.ts'
 import { growthRoutes } from './growth/routes.ts'
 import { GROWTH_TASKS } from './growth/prompts.ts'
 import { STUDIO_TASKS } from './studio/prompts.ts'
+import { PERSONAL_TASKS, personalRoutes } from './courses/personal.ts'
+import { DOCUMENT_TASKS } from './courses/document.ts'
 import { AGENT_TASKS } from './agent/prompts.ts'
 
 function routes(d: ModuleDeps): RouteDef[] {
@@ -111,13 +113,14 @@ function routes(d: ModuleDeps): RouteDef[] {
       if (!target) throw notFound('Concept')
       const p = estimate(ev.get(target.id)!).pMastery
       // aim for a ~70-85% success zone: item difficulty close to current mastery
-      const item = (await t.query<{ id: string; type: string; stem: string; answer_spec: AnswerSpec }>(
-        `select i.id, i.type, i.stem, i.answer_spec from education_tutor.items i
+      const item = (await t.query<{ id: string; type: string; stem: string; answer_spec: AnswerSpec; source_refs: { kind?: string; filename?: string; pageStart?: number; bookId?: string }[] | null }>(
+        `select i.id, i.type, i.stem, i.answer_spec, i.source_refs from education_tutor.items i
          where i.concept_id = $1 and i.retired_at is null and i.status = 'approved' and i.type in ('mcq', 'numeric', 'expression') and not exists (select 1 from education_tutor.attempts a where a.item_id = i.id and a.user_id = platform.current_user_id() and a.created_at > now() - interval '1 day')
-         order by abs(i.difficulty - $2), i.id limit 1`, [target.id, p])).rows[0]
+         order by (coalesce(jsonb_array_length(i.source_refs), 0) = 0), abs(i.difficulty - $2), i.id limit 1`, [target.id, p])).rows[0]
       if (!item) return { conceptId: target.id, item: null, message: 'No unseen practice items for this concept right now.' }
       // never send the answer to the client
-      return { conceptId: target.id, item: { id: item.id, type: item.type, stem: item.stem, options: item.answer_spec.type === 'mcq' ? item.answer_spec.options : undefined, multiple: item.answer_spec.type === 'mcq' ? item.answer_spec.correct.length > 1 : undefined } }
+      const src = item.source_refs?.[0]
+      return { conceptId: target.id, source: src?.filename ? { kind: src.kind === 'lesson' ? 'lesson' : 'material', filename: src.filename, page: src.pageStart ?? null, bookId: src.bookId ?? null } : null, item: { id: item.id, type: item.type, stem: item.stem, options: item.answer_spec.type === 'mcq' ? item.answer_spec.options : undefined, multiple: item.answer_spec.type === 'mcq' ? item.answer_spec.correct.length > 1 : undefined } }
     }) },
     { method: 'POST', path: '/attempts', permission: P.study, handler: async ({ principal, body }) => {
       const b = obj(body)
@@ -243,8 +246,9 @@ export const manifest: ModuleManifest = {
     { key: P.read, description: 'See enrolled courses and their concepts', roles: ['student', 'educator', 'tenant_admin'] },
     { key: P.manage, description: 'Create courses, concepts, items; enrol students', roles: ['educator', 'tenant_admin'] },
     { key: P.study, description: 'Use the tutor, practice, revision and planner (own data only)', roles: ['student', 'educator'] },
+    { key: P.insights, description: 'See aggregate, privacy-safe product insights (no individual student data)', roles: ['tenant_admin'] },
   ],
-  routes: (d) => [...routes(d), ...materialRoutes(d), ...diagnosisRoutes(d), ...coachRoutes(d), ...voiceRoutes(d), ...generationRoutes(d), ...assessmentRoutes(d), ...agentRoutes(d), ...studioRoutes(d), ...growthRoutes(d)],
+  routes: (d) => [...routes(d), ...materialRoutes(d), ...diagnosisRoutes(d), ...coachRoutes(d), ...voiceRoutes(d), ...generationRoutes(d), ...assessmentRoutes(d), ...agentRoutes(d), ...studioRoutes(d), ...growthRoutes(d), ...personalRoutes(d)],
   jobs: tutorJobs,
   schedules: SCHEDULES,
   ui: {
@@ -254,7 +258,7 @@ export const manifest: ModuleManifest = {
     ],
     nav: [{ label: 'Tutor', path: '/app/education/tutor', permission: P.read }],
   },
-  ai: { tasks: [...TASKS, ...MATERIAL_TASKS, ...DIAGNOSIS_TASKS, ...VOICE_TASKS, ...GENERATION_TASKS, ...ASSESSMENT_TASKS, ...AGENT_TASKS, ...STUDIO_TASKS, ...GROWTH_TASKS] },
+  ai: { tasks: [...TASKS, ...MATERIAL_TASKS, ...DIAGNOSIS_TASKS, ...VOICE_TASKS, ...GENERATION_TASKS, ...ASSESSMENT_TASKS, ...AGENT_TASKS, ...STUDIO_TASKS, ...GROWTH_TASKS, ...PERSONAL_TASKS, ...DOCUMENT_TASKS] },
   data: {
     stores: [
       { kind: 'schema', name: 'education_tutor', onRemove: 'export_then_drop', description: 'courses, concepts, items, attempts, evidence, cards, goals, plans, sessions, turns, companion profiles/conversations/tasks, studio books/pages/notebooks/annotations, exam papers/questions, hint usage, growth prefs, chapter packages' },

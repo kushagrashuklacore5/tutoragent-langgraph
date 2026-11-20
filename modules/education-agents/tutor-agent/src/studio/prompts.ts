@@ -61,6 +61,7 @@ export function buildOutlinePrompt(o: { mode: 'source' | 'generated'; title: str
 export function buildSectionPrompt(o: { language: Lang; bookTitle: string; sectionTitle: string; mode: 'source' | 'generated'; sources: SourceRef[]; level?: string; style?: string; objective?: string; covered: string[]; allowFigure: boolean }) {
   const sys = [
     `You write one section of an interactive study book: "${o.sectionTitle}" (chapter "${o.bookTitle}"). Teach it well: accurate, concrete, exam-aware.`,
+    'Teach the way the research on learning says works (not "learning styles"): (1) start from something concrete and familiar (a daily-life Indian example) and say why the idea matters; (2) explain the idea in simple words, then the exact term; (3) a fully WORKED example, step by step, saying why each step is taken; (4) a second example where the last step is left for the student to try mentally (faded example), with the answer right after; (5) the most common mistake and how to avoid it; (6) a short summary that links back to the first example. Pair words with a picture whenever a figure helps (dual coding). If the student prefers examples first or theory first, follow that order within this structure.',
     'Output ONE JSON object per line (NDJSON), no other text, no code fences. Block shapes:',
     '{"type":"heading","text":"..."}  — start with exactly one heading',
     '{"type":"text","text":"5-7 short lines of explanation","label":"source|ai","cites":["<ref>"]}',
@@ -70,14 +71,14 @@ export function buildSectionPrompt(o: { language: Lang; bookTitle: string; secti
     '{"type":"excerpt","text":"a short exact quote from a SOURCE worth reading in the original","label":"source","cites":["<ref>"]}',
     '{"type":"list","text":"lead-in","items":["...","..."],"label":"source|ai","cites":[]}',
     '{"type":"tip","text":"a memory aid or mnemonic"}   {"type":"exam","text":"what examiners look for / common mistake"}',
-    o.allowFigure ? '{"type":"figure","query":"2-5 word ENGLISH search phrase for a standard diagram, e.g. velocity time graph, free body diagram","caption":"what the figure shows and why it matters"}  — include exactly one when the topic has a standard diagram (graphs, free-body diagrams, apparatus, cycles); skip it otherwise' : '',
+    o.allowFigure ? '{"type":"figure","query":"2-5 word ENGLISH search phrase for a standard diagram, e.g. velocity time graph, free body diagram","caption":"what the figure shows and why it matters"}  — include one (or two for very visual topics) whenever a standard diagram helps (graphs, triangles and angles, free-body diagrams, apparatus, cycles, maps); skip it otherwise' : '',
     'Write formulae in plain notation (v = Δs/Δt, a = (v - u)/t, x^2, √x), never LaTeX.',
-    'One quick check where it helps learning, as the last-but-one block: {"type":"activity","kind":"mcq","prompt":"...","options":["...","...","..."],"correct":[<0-based index of the right option>],"answerExpr":"<REQUIRED when options are numbers: plain arithmetic giving the right value, e.g. 20/5>","hint":"...","explanation":"..."} or {"type":"activity","kind":"numeric","prompt":"...","value":<number>,"answerExpr":"<plain arithmetic that computes value, e.g. 5000/2500>","unit":"...","hint":"...","explanation":"..."} or {"type":"activity","kind":"explain","prompt":"Explain in your own words ...","modelAnswer":"...","hint":"...","explanation":"..."}',
+    'No quizzes, quick checks or questions for the student to answer inside the book (practice happens in a separate practice space, opened when it helps). A worked example is welcome.',
     '{"type":"summary","text":"3-4 line recap"}  — end with exactly one summary',
     'Rules: 6-10 blocks in total. Each text block at most ~7 lines. label "source" ONLY for statements taken from the SOURCES, citing their refs; label "ai" for your own explanations and examples. Never invent sources, page numbers or citations.',
     o.mode === 'source' ? 'Teach FROM the SOURCES (the student\'s material comes first); keep their notation and order. Add your own explanation only to clarify.' : 'There may be no sources: write a careful explanation from well-established knowledge and label it "ai".',
     o.covered.length ? `Already covered in earlier sections (do not repeat): ${o.covered.slice(-12).join('; ')}.` : '',
-    [o.level ? `Student level: ${o.level}.` : '', o.style ? `Learning preference: ${o.style}.` : '', o.objective ? `Goal: ${o.objective}.` : ''].join(' ').trim(),
+    [o.level ? `Student level: ${o.level}. Stay strictly within what this level and syllabus cover (e.g. for a school student no university methods, notation or derivations beyond the textbook).` : '', o.style ? `Learning preference: ${o.style}.` : '', o.objective ? `Goal: ${o.objective}.` : ''].join(' ').trim(),
     LANG[o.language],
     sourceBlock(o.sources),
   ].filter(Boolean).join('\n')

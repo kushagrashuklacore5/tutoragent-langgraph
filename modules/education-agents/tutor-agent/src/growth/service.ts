@@ -172,7 +172,8 @@ export function growthService(d: ModuleDeps) {
   }
 
   // ── graduated hints ──
-  async function hint(p: Principal, itemId: string, level: number) {
+  /** `direct`: the student CHOSE the complete solution (recorded as level 6 = aided; never unaided credit) */
+  async function hint(p: Principal, itemId: string, level: number, direct = false) {
     if (!Number.isInteger(level) || level < 1 || level > 6) throw badRequest('invalid_field', 'level must be 1-6')
     const ctx = await tx(p, async (t) => {
       const it = (await t.query<{ id: string; course_id: string; concept_id: string; stem: string; answer_spec: AnswerSpec; explanation: string; status: string }>('select id, course_id, concept_id, stem, answer_spec, explanation, status from education_tutor.items where id = $1', [itemId])).rows[0]
@@ -183,8 +184,8 @@ export function growthService(d: ModuleDeps) {
       return { it, seen, triedWrong: !!triedWrong }
     })
     // one rung at a time; the full solution only after the worked-example rung or a wrong attempt
-    if (level > ctx.seen + 1) throw new AppError('hint_order', `Try hint ${ctx.seen + 1} first`, { status: 409 })
-    if (level === 6 && ctx.seen < 5 && !ctx.triedWrong) throw new AppError('hint_order', 'The full solution opens after the similar-example hint or after you have tried', { status: 409 })
+    if (!(direct && level === 6) && level > ctx.seen + 1) throw new AppError('hint_order', `Try hint ${ctx.seen + 1} first`, { status: 409 })
+    if (level === 6 && !direct && ctx.seen < 5 && !ctx.triedWrong) throw new AppError('hint_order', 'The full solution opens after the similar-example hint or after you have tried', { status: 409 })
     const key = answerText(ctx.it.answer_spec)
     let text: string
     let source: { filename: string; page: number; href: string } | null = null

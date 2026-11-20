@@ -11,7 +11,7 @@ const SignIn = lazy(() => import('./pages/SignIn.tsx'))
 const Verify = lazy(() => import('./pages/Verify.tsx'))
 const Onboarding = lazy(() => import('./pages/Onboarding.tsx'))
 const Home = lazy(() => import('./pages/Home.tsx'))
-const Companion = lazy(() => import('./pages/Companion.tsx'))
+const Learn = lazy(() => import('./pages/Learn.tsx'))
 const Studio = lazy(() => import('./pages/Studio.tsx'))
 const Book = lazy(() => import('./pages/Book.tsx'))
 const ChapterPackage = lazy(() => import('./pages/ChapterPackage.tsx'))
@@ -20,7 +20,8 @@ const ExamInsights = lazy(() => import('./pages/ExamInsights.tsx'))
 const Courses = lazy(() => import('./pages/Courses.tsx'))
 const CourseLayout = lazy(() => import('./pages/CourseLayout.tsx'))
 const Overview = lazy(() => import('./pages/Overview.tsx'))
-const Tutor = lazy(() => import('./pages/Tutor.tsx'))
+const OpenLesson = lazy(() => import('./pages/OpenLesson.tsx'))
+const PracticeDesk = lazy(() => import('./pages/PracticeDesk.tsx'))
 const Materials = lazy(() => import('./pages/Materials.tsx'))
 const Reader = lazy(() => import('./pages/Reader.tsx'))
 const Practice = lazy(() => import('./pages/Practice.tsx'))
@@ -60,12 +61,12 @@ function App() {
         <Route path="/signin" element={<SignIn />} />
         <Route path="/auth/verify" element={<Verify />} />
         <Route element={<Gate />}>
-          <Route index element={<Home />} />
+          <Route index element={<Learn />} />
           <Route path="onboarding" element={<Onboarding />} />
           <Route path="app/education/tutor" element={<Courses />} />
           <Route path="app/education/tutor/courses/:courseId" element={<CourseLayout />}>
             <Route index element={<Overview />} />
-            <Route path="tutor" element={<Tutor />} />
+            <Route path="tutor" element={<OpenLesson />} />
             <Route path="materials" element={<Materials />} />
             <Route path="materials/:documentId/:page" element={<Reader />} />
             <Route path="practice" element={<Practice />} />
@@ -75,7 +76,11 @@ function App() {
             <Route path="plan" element={<Plan />} />
             <Route path="exam" element={<ExamInsights />} />
           </Route>
-          <Route path="assistant" element={<Companion />} />
+          <Route path="assistant" element={<Navigate to="/" replace />} />
+          <Route path="practice/:courseId" element={<PracticeDesk />}>
+            <Route index element={<Practice />} />
+          </Route>
+          <Route path="today" element={<Home />} />
           <Route path="studio" element={<Studio />} />
           <Route path="studio/:bookId" element={<Book />} />
           <Route path="studio/:bookId/package" element={<ChapterPackage />} />

@@ -376,7 +376,7 @@ export function assessmentService(d: ModuleDeps) {
       const id = uuid(params.assessmentId, 'assessmentId')
       const started = await tx(principal, async (t) => {
         const a = (await t.query<{ id: string; course_id: string; settings: Settings; status: string; time_limit_minutes: number | null; max_attempts: number | null }>(
-          'select id, course_id, settings, status, time_limit_minutes, max_attempts from education_tutor.assessments where id = $1', [id])).rows[0]
+          'select id, course_id, settings, status, time_limit_minutes, max_attempts, owner_user_id from education_tutor.assessments where id = $1', [id])).rows[0]
         if (!a || a.status !== 'published') throw notFound('Assessment')
         const e = await requireEnrolled(t, principal, a.course_id)
         if (e.role !== 'student') throw new AppError('forbidden', 'Only students take assessments', { status: 403 })
@@ -390,8 +390,13 @@ export function assessmentService(d: ModuleDeps) {
         const { edges } = await courseGraph(t, a.course_id)
         const prerequisites = new Map(conceptIds.map((c) => [c, edges.filter((x) => x.to_concept === c).map((x) => x.from_concept)]))
         const poolConcepts = [...new Set([...conceptIds, ...[...prerequisites.values()].flat()])]
-        const pool = (await t.query<{ id: string; concept_id: string; type: ItemType; difficulty: string; cognitive: Cognitive; stem: string; answer_spec: AnswerSpec }>(
-          `select id, concept_id, type, difficulty, cognitive, stem, answer_spec from education_tutor.items where concept_id = any($1) and status = 'approved' and retired_at is null`, [poolConcepts])).rows
+        const all = (await t.query<{ id: string; concept_id: string; type: ItemType; difficulty: string; cognitive: Cognitive; stem: string; answer_spec: AnswerSpec; grounded: boolean }>(
+          `select id, concept_id, type, difficulty, cognitive, stem, answer_spec, (origin = 'educator' or validation->>'source' in ('document', 'lesson')) as grounded from education_tutor.items where concept_id = any($1) and status = 'approved' and retired_at is null`, [poolConcepts])).rows
+        // a student's own test (self-test/diagnostic/mock) asks about what they were taught and their material: per topic,
+        // grounded questions are used whenever that topic has any
+        const own = !!(a as { owner_user_id?: string | null }).owner_user_id
+        const groundedTopics = new Set(all.filter((r) => r.grounded).map((r) => r.concept_id))
+        const pool = own ? all.filter((r) => r.grounded || !groundedTopics.has(r.concept_id)) : all
         const ev = await evidenceFor(t, poolConcepts)
         const mastery = new Map(poolConcepts.map((c) => { const m = estimate(ev.get(c)!); return [c, { pMastery: m.pMastery, state: m.state, evidenceCount: m.evidenceCount }] }))
         const recentlySeen = new Set((await t.query<{ item_id: string }>(`select distinct item_id from education_tutor.attempts where user_id = platform.current_user_id() and created_at > now() - interval '14 days'`)).rows.map((r) => r.item_id))

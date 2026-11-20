@@ -4,7 +4,7 @@
  *                            next-session preparation, conversation retention
  *   agent.after_assessment   after a graded assessment: re-plan with the new evidence and tell the student
  */
-import type { JobContext, ModuleDeps } from '@platform/contracts'
+import { PermanentJobError, type JobContext, type ModuleDeps, type Principal } from '@platform/contracts'
 import type { Sql } from '@platform/tenancy-db'
 import { estimate } from '../domain/learner-model.ts'
 import type { Plan } from '../domain/planner.ts'
@@ -12,10 +12,13 @@ import { coachFor } from '../coach.ts'
 import { evidenceFor } from '../common.ts'
 import { generatePlan } from '../plans.ts'
 import { decideNudges, prepareSession, type NudgeKind } from './nudges.ts'
+import { buildTopicSet } from '../courses/personal.ts'
 import { addMessage, createConversation, initialState, latestConversation, loadProfile, RETENTION_DAYS, saveState, type ConvState } from './store.ts'
 
 export const AGENT_DAILY_JOB = 'agent.daily.student'
 export const AFTER_ASSESSMENT_JOB = 'agent.after_assessment'
+export { QUESTION_SET_JOB } from './job-names.ts'
+import { QUESTION_SET_JOB } from './job-names.ts'
 const DAY = 86_400_000
 
 const asUser = <T>(ctx: JobContext, fn: (t: Sql) => Promise<T>): Promise<T> => {
@@ -125,6 +128,40 @@ export function agentJobs(d: ModuleDeps) {
       return { milestonesDone: ms.done, milestonesMissed: ms.missed.length, nudges: posted, purged }
     }),
 
+    /** The plan's question set, built ONCE after approval: per topic, the student's document first, then checked
+     *  AI questions to fill the gap. Topics already filled are skipped, so retries and re-runs are cheap no-ops. */
+    [QUESTION_SET_JOB]: async (ctx: JobContext) => {
+      const { userId, courseId, conceptIds, documentId } = (ctx.job.payload ?? {}) as { userId?: string; courseId?: string; conceptIds?: string[]; documentId?: string | null }
+      if (!ctx.job.tenant_id || !userId || !courseId || !Array.isArray(conceptIds)) throw new PermanentJobError('agent.question_set needs a tenant, userId, courseId and conceptIds')
+      const p: Principal = { userId, tenantId: ctx.job.tenant_id, email: '', roles: ['student'], isPlatformAdmin: false }
+      // only the questionSet field is written (live: saving the whole state raced with the approval turn)
+      const progress = (qs: NonNullable<ConvState['questionSet']>, say?: string) => asUser(ctx, async (t) => {
+        const conv = await conversationFor(t)
+        await t.query(`update education_tutor.agent_conversations set state = jsonb_set(state, '{questionSet}', $2::jsonb) where id = $1`, [conv.id, JSON.stringify(qs)])
+        if (say) await addMessage(d, p, t, conv.id, { role: 'agent', content: say, cards: [], dedupeKey: `qs:${courseId}:${ctx.job.id}` })
+      })
+      const total = conceptIds.length
+      let done = 0, added = 0, fromDocument = 0
+      const notes: unknown[] = []
+      await progress({ courseId, total, done, status: 'building', added, fromDocument })
+      for (const conceptId of conceptIds) {
+        try {
+          const r = await buildTopicSet(d, p, courseId, conceptId, { documentId: documentId ?? null })
+          added += r.added; fromDocument += r.fromDocument
+          notes.push({ conceptId, added: r.added, fromDocument: r.fromDocument, candidates: r.candidates ?? 0, sourcePages: r.sourcePages ?? 0, rejected: r.reasons ?? [] })
+        } catch (e) {
+          // provider hiccups retry the whole job (finished topics are skipped); bad topics are skipped
+          if ((e as { retryable?: boolean }).retryable) throw e
+        }
+        done++
+        await progress({ courseId, total, done, status: 'building', added, fromDocument })
+        // stay under the provider's per-minute token limit (live: back-to-back topics were rate limited)
+        if (done < total) await new Promise((r) => setTimeout(r, 4000))
+      }
+      await progress({ courseId, total, done, status: 'ready', added, fromDocument },
+        added ? `Your practice set is ready: ${added} questions${fromDocument ? `, ${fromDocument} of them taken from your own material (with page numbers)` : ''}. Every answer was checked before it was added. Say "practise" when you want to start.` : undefined)
+      return { added, fromDocument, notes }
+    },
     [AFTER_ASSESSMENT_JOB]: async (ctx: JobContext) => asUser(ctx, async (t) => {
       const p = principalOf(ctx)
       const { attemptId } = (ctx.job.payload ?? {}) as { attemptId?: string }

@@ -1,34 +1,19 @@
 import { useEffect, useRef, useState, type DragEvent, type FormEvent } from 'react'
 import { Link } from 'react-router'
-import { TUTOR, api, describeError, isEndpointMissing, toApiError } from '../lib/api.ts'
+import { TUTOR, api, describeError, isEndpointMissing } from '../lib/api.ts'
 import { prefs } from '../lib/storage.ts'
 import { LANGUAGES, checkUpload, formatBytes, normalizeSegments, type AskResponse, type Citation, type Language, type Material } from '../lib/tutor.ts'
 import { Icon } from '../ui/icons.tsx'
 import { Button, Card, EmptyState, ErrorNote, Notice, PageHeader, Skeleton, inputCls, useLoad } from '../ui/kit.tsx'
 import { SegmentList } from '../ui/Segments.tsx'
 import { PagePreview, SourceOverlay, useMedia } from '../ui/SourcePanel.tsx'
+import { uploadMaterial } from '../lib/upload.ts'
 import { useCourse } from './CourseLayout.tsx'
 
 interface Upload { id: string; name: string; size: number; progress: number; error?: string; done?: boolean }
 
 /** XHR (not fetch) so upload progress can be shown on slow connections. */
-function uploadFile(courseId: string, file: File, mime: string, onProgress: (p: number) => void): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest()
-    xhr.open('POST', `${TUTOR}/courses/${courseId}/materials?filename=${encodeURIComponent(file.name)}`)
-    xhr.setRequestHeader('content-type', mime)
-    xhr.withCredentials = true
-    xhr.upload.onprogress = (e) => { if (e.lengthComputable) onProgress(e.loaded / e.total) }
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) return resolve()
-      let body: unknown = null
-      try { body = JSON.parse(xhr.responseText) } catch { /* ignore */ }
-      reject(toApiError(xhr.status, body))
-    }
-    xhr.onerror = () => reject(toApiError(0, null))
-    xhr.send(file)
-  })
-}
+const uploadFile = (courseId: string, file: File, mime: string, onProgress: (p: number) => void) => uploadMaterial(courseId, file, mime, onProgress).then(() => undefined)
 
 const STATUS = {
   processing: { label: 'Processing', icon: 'clock', cls: 'text-warn bg-warn-bg' },

@@ -28,7 +28,7 @@ export function growthRoutes(d: ModuleDeps): RouteDef[] {
       const scope = query.get('scope')
       return g.insights(principal, uuid(params.courseId, 'courseId'), scope === 'board' || scope === 'school' ? scope : 'all')
     } },
-    { method: 'POST', path: '/items/:itemId/hints', permission: P.study, handler: async ({ principal, params, body }) => g.hint(principal, uuid(params.itemId, 'itemId'), Number(obj(body).level)) },
+    { method: 'POST', path: '/items/:itemId/hints', permission: P.study, handler: async ({ principal, params, body }) => g.hint(principal, uuid(params.itemId, 'itemId'), Number(obj(body).level), obj(body).direct === true) },
     { method: 'GET', path: '/courses/:courseId/observation', permission: P.study, handler: async ({ principal, params }) => g.observation(principal, uuid(params.courseId, 'courseId')) },
     { method: 'GET', path: '/courses/:courseId/growth', permission: P.study, handler: async ({ principal, params }) => g.growth(principal, uuid(params.courseId, 'courseId')) },
     { method: 'PUT', path: '/growth/prefs', permission: P.study, handler: async ({ principal, body }) => {

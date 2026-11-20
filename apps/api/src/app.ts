@@ -20,6 +20,8 @@ export interface AppOptions {
   system: SystemDatabase
   keyManager: KeyManager
   mail: MailTransport
+  /** development with the dev mail outbox: return the sign-in link to the page (never in production) */
+  devSignInLinks?: boolean
   publicBaseUrl: string
   allowedOrigins: string[]
   modules: ModuleManifest[]
@@ -104,7 +106,14 @@ export function createApp(o: AppOptions) {
     pub('POST', '/api/auth/magic-link', async (req) => {
       const b = body<{ tenantSlug?: string; email?: string }>(req)
       if (!b.tenantSlug || !b.email) throw badRequest('fields_required', 'tenantSlug and email are required')
+      const since = new Date()
       await identity.requestMagicLink({ tenantSlug: b.tenantSlug, email: b.email })
+      // local development only: no email is really sent (dev outbox), so hand the link back to the sign-in page
+      if (o.devSignInLinks && o.env !== 'production') {
+        const r = await o.system.query<{ body: string }>(`select body from platform.dev_mail_outbox where lower(to_address) = lower($1) and created_at >= $2 order by created_at desc limit 1`, [b.email.trim(), new Date(since.getTime() - 1000)])
+        const link = /https?:\/\/\S+#token=[A-Za-z0-9_-]+/.exec(r.rows[0]?.body ?? '')?.[0]
+        return { status: 'sent_if_member', ...(link ? { devLink: link } : {}) }
+      }
       return { status: 'sent_if_member' }
     }),
     pub('POST', '/api/auth/verify', async (req) => {

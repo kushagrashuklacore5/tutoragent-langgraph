@@ -23,7 +23,6 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
       const base = `/app/education/tutor/courses/${c.id}`
       list.push(
         { id: `c:${c.id}`, label: `${c.code} · ${c.title}`, hint: 'Open course', icon: 'book', run: go(base) },
-        { id: `t:${c.id}`, label: `Ask the tutor in ${c.code}`, hint: 'Tutor', icon: 'chat', run: go(`${base}/tutor`) },
         { id: `p:${c.id}`, label: `Practise ${c.code}`, hint: 'Practice', icon: 'target', run: go(`${base}/practice`) },
         { id: `m:${c.id}`, label: `Materials for ${c.code}`, hint: 'Materials', icon: 'file', run: go(`${base}/materials`) },
         { id: `pl:${c.id}`, label: `Plan for ${c.code}`, hint: 'Plan', icon: 'calendar', run: go(`${base}/plan`) },

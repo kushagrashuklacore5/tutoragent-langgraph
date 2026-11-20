@@ -159,7 +159,7 @@ function gatewayStatus(kind: string): number {
   switch (kind) {
     case 'unknown_task': case 'invalid_request': return 400
     case 'budget_exceeded': return 402
-    case 'no_eligible_route': case 'overloaded': case 'rate_limited': case 'network': case 'timeout': return 503
+    case 'auth': case 'quota_exhausted': case 'provider_error': case 'no_eligible_route': case 'overloaded': case 'rate_limited': case 'network': case 'timeout': return 503
     case 'invalid_output': return 502
     default: return 502
   }

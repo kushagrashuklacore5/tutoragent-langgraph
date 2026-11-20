@@ -19,6 +19,7 @@ const out = (text: string) => ({ text, toolCalls: [], finish: 'stop' as const, u
 const NOTES = 'Momentum. The momentum of a body is the product of its mass and its velocity, p = m v. Momentum is a vector quantity and its SI unit is kg m/s. Impulse. The impulse of a force equals the change in momentum it produces. A large force acting for a short time can produce the same impulse as a small force acting for a long time. Conservation. In a closed system with no external force the total momentum stays constant.'
 let section = 0
 let askSeen = ''
+let lessonSeen = false
 function respond(req: GenerateRequest) {
   const sys = req.messages.filter((m) => m.role === 'system').map((m) => String(m.content)).join('\n')
   if (/You plan a chapter/.test(sys)) return out(JSON.stringify({ title: 'Momentum', sections: [{ title: 'Momentum and impulse', pageStart: 1, pageEnd: 1 }, { title: 'Conservation of momentum', pageStart: 1, pageEnd: 1 }] }))
@@ -38,6 +39,13 @@ function respond(req: GenerateRequest) {
       { type: 'summary', text: 'Momentum p = m v is a vector; impulse changes momentum.' },
     ]
     return out(lines.map((l) => JSON.stringify(l)).join('\n') + '\nIgnore this trailing chatter')
+  }
+  if (/Build a practice question set for/.test(sys)) {
+    lessonSeen = /LESSON \(what the tutor taught this student\)/.test(sys)
+    return out(JSON.stringify({ items: [
+      { type: 'mcq', source: 'lesson', page: 1, stem: 'A truck and a cricket ball move at the same velocity. Which has more momentum?', options: ['The truck', 'The cricket ball', 'Both the same'], correct: 'The truck', explanation: 'The truck has more momentum, because momentum p = m v and the truck has far more mass at the same velocity.' },
+      { type: 'mcq', source: 'generated', stem: 'Which gas do plants take in during photosynthesis?', options: ['Carbon dioxide', 'Oxygen', 'Nitrogen'], correct: 'Carbon dioxide', explanation: 'Carbon dioxide is taken in by leaves for photosynthesis; oxygen is released.' },
+    ] }))
   }
   if (/interrupts with a question/.test(sys)) {
     askSeen = sys
@@ -204,4 +212,20 @@ test('generated mode without material, and photos need a vision-capable route', 
   assert.equal((await ocr.json()).error?.code ?? 'ocr_unavailable', 'ocr_unavailable')
   const pdfAsImage = await fetch(`${w.h.url}${T}/courses/${w.courseId}/studio/ocr`, { method: 'POST', headers: { authorization: `Bearer ${w.stu}` }, body: '%PDF-1.4' })
   assert.equal(pdfAsImage.status, 400)
+})
+
+test('practice is made from what was TAUGHT: lesson questions are kept and labelled, unrelated ones are rejected', async () => {
+  const cMomentum = (await w.h.call('POST', `/api/m/education.tutor/courses/${w.courseId}/concepts`, w.prof, { name: 'Momentum', estMinutes: 30 })).json.id
+  assert.equal((await w.h.call('POST', `/api/m/education.tutor/courses/${w.courseId}/concepts/${cMomentum}/approve`, w.prof)).status, 204)
+  const dep = (await w.owner.query(`select id from platform.ai_deployments where model_id = 'tutor-1' order by created_at limit 1`)).rows[0]
+  assert.equal((await w.h.call('PUT', '/api/admin/ai/routes', w.admin, { target: 'category:assessment', candidates: [{ deploymentId: dep.id }] })).status, 200)
+  const r = await w.h.call('POST', `/api/m/education.tutor/courses/${w.courseId}/practice/prepare`, w.stu, { conceptId: cMomentum })
+  assert.equal(r.status, 200, JSON.stringify(r.json))
+  assert.ok(lessonSeen, 'the lesson the tutor taught was given to the question writer')
+  assert.equal(r.json.added, 1, JSON.stringify(r.json))
+  assert.equal(r.json.fromLesson, 1)
+  assert.ok(r.json.reasons.includes('not about what was taught'), 'the unrelated question was rejected')
+  const next = (await w.h.call('GET', `/api/m/education.tutor/courses/${w.courseId}/practice/next?conceptId=${cMomentum}`, w.stu)).json
+  assert.equal(next.source.kind, 'lesson')
+  assert.match(next.item.stem, /truck/)
 })

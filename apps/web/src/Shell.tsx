@@ -1,21 +1,33 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { useSession } from './session.tsx'
-import { prefs } from './lib/storage.ts'
 import { Icon, type IconName } from './ui/icons.tsx'
 import { Dialog } from './ui/kit.tsx'
 import { CommandPalette } from './CommandPalette.tsx'
+import { ChatDock } from './chat/ChatDock.tsx'
 
 interface NavItem { to: string; label: string; icon: IconName; end?: boolean }
 
 /** Navigation = platform core + whatever the enabled modules contribute (from /api/platform/modules). */
 export function useNavItems(): NavItem[] {
   const s = useSession()
+  // students: the conversation IS home; workspaces follow. Others keep the dashboard.
+  const student = s.tutorEnabled && s.canStudy && s.courses.some((c) => c.role === 'student')
+  // CHATBOT-FIRST: a student acts through the conversation; the rest of the menu is for looking things up
+  if (student) return [
+    { to: '/', label: 'Chat', icon: 'chat', end: true },
+    { to: '/today', label: 'My plan', icon: 'home' },
+    { to: '/studio', label: 'Books', icon: 'layers' },
+    { to: '/app/education/tutor', label: 'Courses', icon: 'book' },
+    { to: '/growth', label: 'Progress', icon: 'target' },
+    ...(s.isEducator ? [{ to: '/educator', label: 'Educator', icon: 'school' as IconName }] : []),
+    { to: '/settings', label: 'Settings', icon: 'settings' },
+  ]
   const items: NavItem[] = [{ to: '/', label: 'Today', icon: 'home', end: true }]
   for (const n of s.modules?.nav ?? []) {
     if (n.moduleId === 'education.tutor') {
       items.push({ to: n.path, label: 'Courses', icon: 'book' })
-      if (s.canStudy) items.push({ to: '/assistant', label: 'Companion', icon: 'chat' }, { to: '/studio', label: 'Studio', icon: 'layers' }, { to: '/growth', label: 'Growth', icon: 'target' }, { to: '/revise', label: 'Revise', icon: 'cards' }, { to: '/progress', label: 'Progress', icon: 'chart' })
+      if (s.canStudy) items.push({ to: '/studio', label: 'Books', icon: 'layers' }, { to: '/revise', label: 'Revise', icon: 'cards' }, { to: '/growth', label: 'Progress', icon: 'target' }, { to: '/today', label: 'Today', icon: 'home' })
       if (s.isEducator) items.push({ to: '/educator', label: 'Educator', icon: 'school' })
     } else {
       items.push({ to: n.path, label: n.label, icon: 'layers' })
@@ -29,6 +41,7 @@ type RailMode = 'auto' | 'open' | 'closed'
 
 export function Shell() {
   const s = useSession()
+  const student = s.tutorEnabled && s.canStudy && s.courses.some((c) => c.role === 'student')
   const items = useNavItems()
   const loc = useLocation()
   const navigate = useNavigate()
@@ -60,12 +73,9 @@ export function Shell() {
 
   const label = rail === 'auto' ? 'hidden xl:inline' : rail === 'open' ? 'inline' : 'hidden'
   const width = rail === 'auto' ? 'md:w-[4.75rem] xl:w-60' : rail === 'open' ? 'md:w-60' : 'md:w-[4.75rem]'
-  const lastCourse = prefs.lastCourse()
-  const tutorTo = lastCourse && s.courses.some((c) => c.id === lastCourse) ? `/app/education/tutor/courses/${lastCourse}/tutor` : s.courses[0] ? `/app/education/tutor/courses/${s.courses[0].id}/tutor` : '/app/education/tutor'
   const bottom: NavItem[] = [
-    { to: '/', label: 'Today', icon: 'home', end: true },
-    ...(s.tutorEnabled ? [{ to: '/app/education/tutor', label: 'Courses', icon: 'book' as IconName, end: true }, { to: tutorTo, label: 'Tutor', icon: 'chat' as IconName }] : []),
-    ...(s.tutorEnabled && s.canStudy ? [{ to: '/assistant', label: 'Companion', icon: 'chat' as IconName }, { to: '/revise', label: 'Revise', icon: 'cards' as IconName }] : []),
+    ...(student ? [{ to: '/', label: 'Chat', icon: 'chat' as IconName, end: true }, { to: '/today', label: 'My plan', icon: 'home' as IconName }, { to: '/studio', label: 'Books', icon: 'layers' as IconName }, { to: '/growth', label: 'Progress', icon: 'target' as IconName }]
+      : [{ to: '/', label: 'Today', icon: 'home' as IconName, end: true }, ...(s.tutorEnabled ? [{ to: '/app/education/tutor', label: 'Courses', icon: 'book' as IconName, end: true }, { to: '/studio', label: 'Books', icon: 'chat' as IconName }] : [])]),
   ]
 
   return (
@@ -109,6 +119,8 @@ export function Shell() {
         <main id="main" className="mx-auto w-full max-w-[90rem] flex-1 px-4 pb-28 pt-5 sm:px-6 md:pb-10 lg:px-8">
           <Outlet />
         </main>
+        {/* one chat: the home page IS the chat; a book carries it in its side panel */}
+        {student && loc.pathname !== '/' && !/^\/studio\/[^/]+$/.test(loc.pathname) ? <ChatDock /> : null}
       </div>
 
       {/* bottom bar on phones: Today · Courses · Tutor · Revise · More */}

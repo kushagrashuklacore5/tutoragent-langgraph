@@ -21,7 +21,7 @@ export interface MasteryEstimate {
 export interface ConceptMastery extends MasteryEstimate { conceptId: string; name: string }
 
 export interface PracticeItem { id: string; type: 'mcq' | 'numeric' | 'expression'; stem: string; options?: string[]; multiple?: boolean }
-export interface PracticeNext { conceptId: string; item: PracticeItem | null; message?: string }
+export interface PracticeNext { conceptId: string; item: PracticeItem | null; message?: string; source?: { kind?: 'lesson' | 'material'; filename: string; page: number | null; bookId?: string | null } | null }
 export type Confidence = 'sure' | 'unsure' | 'guess'
 export interface AttemptResult { attemptId?: string; correct: boolean; outcome: number; explanation: string; confidentAndWrong: boolean; mastery: MasteryEstimate }
 

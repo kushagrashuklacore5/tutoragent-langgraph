@@ -4,7 +4,7 @@
  * clamps every value, and `nextSlot` deterministically decides what (if anything) is still worth asking —
  * one question at a time, never re-asking a slot that is known, skipped or already asked.
  */
-export const OBJECTIVES = ['conceptual_mastery', 'exam_prep', 'practical_skills', 'interview_prep', 'project', 'general'] as const
+export const OBJECTIVES = ['conceptual_mastery', 'exam_prep', 'practical_skills', 'interview_prep', 'project', 'general', 'revision', 'class_prep', 'quick_explanation', 'homework', 'curiosity'] as const
 export const LEVELS = ['school', 'undergraduate', 'postgraduate', 'professional'] as const
 export const STYLES = ['examples_first', 'theory_first', 'practice_heavy', 'visual', 'mixed'] as const
 export const LANGS = ['en', 'hi', 'hinglish'] as const
@@ -28,6 +28,16 @@ export interface LearnerProfile {
   confidence?: number
   priorKnowledge?: string
   hasMaterials?: boolean
+  /** chapter, topic or skill the journey is about */
+  topic?: string
+  /** how deep: a preview (e.g. before class), standard, or deep mastery */
+  depth?: 'overview' | 'standard' | 'deep'
+  /** which material to teach from: the student's upload, the course curriculum (NCERT/syllabus), or AI-prepared content */
+  material?: 'own' | 'curriculum' | 'ai'
+  /** the course the material choice was made for: a different course needs its own answer */
+  materialFor?: string
+  /** prefers hands-on practice over theory */
+  handsOn?: boolean
   language?: (typeof LANGS)[number]
   /** slots the student chose not to answer */
   skipped?: string[]
@@ -35,14 +45,17 @@ export interface LearnerProfile {
   explained?: string[]
 }
 
-export type Slot = 'courseId' | 'objective' | 'examDate' | 'dailyMinutes' | 'confidence' | 'learningStyle' | 'hasMaterials' | 'level'
-/** Required before a plan can be proposed (examDate only for date-bound objectives). */
-export const REQUIRED: Slot[] = ['courseId', 'objective', 'examDate', 'dailyMinutes']
+export type Slot = 'courseId' | 'objective' | 'topic' | 'depth' | 'examDate' | 'dailyMinutes' | 'material' | 'confidence' | 'learningStyle' | 'hasMaterials' | 'level'
+/** Every slot that can be required for some goal (see requiredSlots). */
+export const REQUIRED: Slot[] = ['courseId', 'objective', 'topic', 'depth', 'examDate', 'dailyMinutes']
 /** Useful but optional: at most MAX_OPTIONAL_QUESTIONS of these are asked before the first plan. */
-export const OPTIONAL: Slot[] = ['confidence', 'level', 'learningStyle', 'hasMaterials']
+export const OPTIONAL: Slot[] = ['confidence', 'level', 'learningStyle']
 export const MAX_OPTIONAL_QUESTIONS = 2
 
-const DATED: Objective[] = ['exam_prep', 'interview_prep']
+const DATED: Objective[] = ['exam_prep', 'interview_prep', 'revision']
+/** goals answered or acted on directly in the conversation: no study plan, no follow-up questions */
+export const UNPLANNED: Objective[] = ['quick_explanation', 'homework', 'curiosity']
+export const plannable = (p: LearnerProfile) => !!p.objective && !UNPLANNED.includes(p.objective)
 const clip = (s: unknown, n: number) => (typeof s === 'string' && s.trim() ? s.trim().replace(/\s+/g, ' ').slice(0, n) : undefined)
 const ymd = (d: Date) => d.toISOString().slice(0, 10)
 
@@ -81,6 +94,10 @@ export function mergeProfile(cur: LearnerProfile, proposed: Record<string, unkno
   if (typeof x.confidence === 'number' && Number.isFinite(x.confidence)) set('confidence', Math.round(Math.min(5, Math.max(1, x.confidence))))
   set('priorKnowledge', clip(x.priorKnowledge, 300))
   if (typeof x.hasMaterials === 'boolean') set('hasMaterials', x.hasMaterials)
+  set('topic', clip(x.topic, 160))
+  if (['overview', 'standard', 'deep'].includes(x.depth as string)) set('depth', x.depth as LearnerProfile['depth'])
+  if (x.material === 'own' || x.material === 'curriculum' || x.material === 'ai') { set('material', x.material); if (p.courseId) set('materialFor', p.courseId) }
+  if (typeof x.handsOn === 'boolean') set('handsOn', x.handsOn)
   if (LANGS.includes(x.language as never)) set('language', x.language as LearnerProfile['language'])
   if (Array.isArray(x.skip)) {
     const skips = x.skip.filter((s): s is Slot => [...REQUIRED, ...OPTIONAL].includes(s as Slot) && s !== 'courseId')
@@ -89,12 +106,24 @@ export function mergeProfile(cur: LearnerProfile, proposed: Record<string, unkno
   return { profile: p, changed }
 }
 
-const known = (p: LearnerProfile, s: Slot): boolean => p[s] !== undefined || (p.skipped ?? []).includes(s)
+const known = (p: LearnerProfile, s: Slot): boolean => s === 'material'
+  // the material source is never skippable and is answered per course
+  ? p.material !== undefined && p.materialFor === p.courseId
+  : p[s] !== undefined || (p.skipped ?? []).includes(s)
 export const needsDate = (p: LearnerProfile) => !!p.objective && DATED.includes(p.objective)
 
 /** Required slots still missing (examDate only matters for date-bound objectives). */
+/** Only the questions that improve THIS goal's plan. */
+export function requiredSlots(p: LearnerProfile): Slot[] {
+  if (p.objective && !plannable(p)) return ['courseId']
+  // before teaching: what, how deep / by when, and explicitly WHICH material to teach from
+  if (p.objective === 'class_prep') return ['courseId', 'objective', 'topic', 'depth', 'material']
+  return ['courseId', 'objective', ...(p.objective && p.objective !== 'general' ? ['topic' as Slot] : []), 'examDate', 'dailyMinutes', 'material']
+}
+
 export function missingRequired(p: LearnerProfile): Slot[] {
-  return REQUIRED.filter((s) => {
+  if (p.objective && !plannable(p)) return p.courseId ? [] : ['courseId']
+  return requiredSlots(p).filter((s) => {
     if (s === 'examDate') return needsDate(p) && !known(p, s)
     if (s === 'courseId') return !p.courseId
     return !known(p, s)
@@ -154,6 +183,16 @@ export function parseSlotAnswer(slot: Slot, text: string, now: Date): Record<str
     const n = /^([1-5])\b/.exec(t)
     if (n) return { confidence: Number(n[1]) }
   }
+  if (slot === 'material') {
+    if (/(upload|my notes|my own|have (some |my )?notes|apne notes|mere notes|meri notes|mere paas|apna material|pdf|docx|photo|own notes|^own|^1\b)/.test(t)) return { material: 'own' }
+    if (/(ncert|curriculum|syllabus|textbook|text book|course material|board|^2\b)/.test(t)) return { material: 'curriculum' }
+    if (/(\bai\b|generate|prepare|curat|aap|tum|you|banao|bana do|koi bhi|^3\b)/.test(t)) return { material: 'ai' }
+  }
+  if (slot === 'depth') {
+    if (/(overview|quick|short|basic|preview|jaldi|thoda)/.test(t)) return { depth: 'overview' }
+    if (/(deep|detail|poora|pura|achhe se|thorough)/.test(t)) return { depth: 'deep' }
+    if (/(standard|normal|medium|theek)/.test(t)) return { depth: 'standard' }
+  }
   if (slot === 'hasMaterials') {
     if (/^(yes|haan|han|ha|yeah|yep)\b/.test(t)) return { hasMaterials: true }
     if (/^(no|nahi|nope|nah)\b/.test(t)) return { hasMaterials: false }
@@ -162,7 +201,7 @@ export function parseSlotAnswer(slot: Slot, text: string, now: Date): Record<str
 }
 
 /** Plan-relevant fields: a change to any of these after a plan exists means the plan should be re-proposed. */
-export const PLAN_FIELDS: (keyof LearnerProfile)[] = ['courseId', 'objective', 'examDate', 'dailyMinutes', 'studyDaysPerWeek']
+export const PLAN_FIELDS: (keyof LearnerProfile)[] = ['courseId', 'objective', 'topic', 'depth', 'examDate', 'dailyMinutes', 'studyDaysPerWeek']
 
 /** Short, non-sensitive summary of what is known (for the model's context). */
 export function profileSummary(p: LearnerProfile): Record<string, unknown> {
@@ -184,4 +223,58 @@ export function applyDoubts(p: LearnerProfile, open: unknown, resolved: unknown,
   const openD = doubts.filter((d) => d.status === 'open').slice(-12)
   const res = doubts.filter((d) => d.status === 'resolved').slice(-8)
   return { ...p, doubts: [...res, ...openD] }
+}
+
+/** A daily study time stated anywhere in a message ("I can only give 45 minutes a day", "1.5 ghante roz"). */
+export function statedDailyMinutes(text: string): number | null {
+  const t = text.toLowerCase()
+  if (!/(a day|per day|daily|every day|each day|roz|rozana|din mein|din me|\/day)/.test(t)) return null
+  const h = /(\d+(?:\.\d+)?)\s*(h|hr|hrs|hour|hours|ghanta|ghante)\b/.exec(t)
+  const m = /(\d{1,3})\s*(m|min|mins|minute|minutes)\b/.exec(t)
+  const v = (h ? Number(h[1]) * 60 : 0) + (m ? Number(m[1]) : 0)
+  return v >= 5 && v <= 720 ? Math.round(v) : null
+}
+
+/** Subjects/skills a student may name; each with the words that identify a course of that subject. */
+const SUBJECTS: { name: string; re: RegExp }[] = [
+  { name: 'Physics', re: /\b(physics|bhautiki|भौतिकी)\b/i },
+  { name: 'Chemistry', re: /\b(chemistry|rasayan|रसायन)\b/i },
+  { name: 'Mathematics', re: /\b(maths?|mathematics|ganit|गणित)\b/i },
+  { name: 'Biology', re: /\b(biology|jeev vigyan|जीव विज्ञान)\b/i },
+  { name: 'Science', re: /\bscience\b/i },
+  { name: 'Geography', re: /\b(geography|bhugol|भूगोल)\b/i },
+  { name: 'History', re: /\b(history|itihas|इतिहास)\b/i },
+  { name: 'Civics', re: /\b(civics|political science|polity)\b/i },
+  { name: 'Economics', re: /\b(economics|arthshastra)\b/i },
+  { name: 'Accountancy', re: /\b(accountancy|accounts)\b/i },
+  { name: 'Business Studies', re: /\bbusiness studies\b/i },
+  { name: 'English', re: /\benglish (grammar|literature|language|class)\b/i },
+  { name: 'Computer Science', re: /\b(computer science|programming|coding)\b/i },
+  { name: 'Python programming', re: /\bpython\b/i },
+  { name: 'Excel', re: /\b(ms excel|excel)\b/i },
+  { name: 'Web development', re: /\b(web development|html|javascript)\b/i },
+]
+/**
+ * Which course a message is about, decided deterministically (live: the model attached a Physics goal to the
+ * active Maths course). `existing`: one of the student's courses; `new`: a subject none of them covers.
+ */
+export function subjectSwitch(message: string, courses: { id: string; title: string }[], currentCourseId: string | undefined): { kind: 'existing'; courseId: string } | { kind: 'new'; subject: string } | null {
+  if (!/(learn|study|padh|prepare|exam|course|samajh|sikh|seekh|revise|chapter|class \d|want|chahiye|start)/i.test(message)) return null
+  const hit = SUBJECTS.find((x) => x.re.test(message))
+  if (!hit) return null
+  const mine = courses.filter((c) => hit.re.test(c.title) || c.title.toLowerCase().includes(hit.name.toLowerCase()))
+  const grade = /\bclass\s*(\d{1,2})\b/i.exec(message)?.[1]
+  const pick = grade ? mine.filter((c) => new RegExp(`\b${grade}\b`).test(c.title)) : mine
+  const course = (pick.length ? pick : grade ? [] : mine)[0]
+  if (course) return course.id === currentCourseId ? null : { kind: 'existing', courseId: course.id }
+  const board = /\b(cbse|icse|ncert|state board|jee|neet)\b/i.exec(message)?.[1]
+  return { kind: 'new', subject: [hit.name, grade ? `class ${grade}` : '', board ? board.toUpperCase() : ''].filter(Boolean).join(' ') }
+}
+
+const GENERIC = new Set(['another', 'other', 'subject', 'subjects', 'skill', 'skills', 'course', 'courses', 'any', 'some', 'new', 'unspecified', 'learn', 'learning', 'study', 'studies', 'concept', 'concepts', 'mastery', 'conceptual', 'comprehensive', 'self', 'general', 'topic', 'topics', 'chapter', 'something', 'stuff', 'koi', 'aur', 'naya', 'kuch', 'class', 'exam', 'preparation', 'basics', 'complete', 'full', 'note', 'notes', 'notebook', 'pdf', 'docx', 'doc', 'document', 'documents', 'file', 'files', 'upload', 'uploaded', 'material', 'materials', 'book', 'books', 'page', 'pages', 'taking', 'handout', 'slides', 'mera', 'meri', 'mere', 'apne', 'apni'])
+/** A course may be created only for a concrete subject the student actually wrote (never "another subject"). */
+export function concreteSubject(subject: string, message: string): boolean {
+  const words = (x: string) => x.toLowerCase().normalize('NFKD').replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter((w) => w.length >= 3 && !GENERIC.has(w))
+  const said = new Set(words(message))
+  return words(subject).some((w) => said.has(w) || [...said].some((m) => m.length >= 5 && (m.startsWith(w.slice(0, 5)) || w.startsWith(m.slice(0, 5)))))
 }

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { Link, NavLink, Outlet, useOutletContext, useParams } from 'react-router'
 import { prefs } from '../lib/storage.ts'
 import type { Course } from '../lib/tutor.ts'
@@ -12,15 +12,17 @@ export default function CourseLayout() {
   const s = useSession()
   const course = s.courses.find((c) => c.id === courseId)
   useEffect(() => { if (course) prefs.setLastCourse(course.id) }, [course])
+  // a course created a moment ago in the chat is not in the list loaded at sign-in: refresh once before giving up
+  const tried = useRef<string | null>(null)
+  useEffect(() => { if (!course && courseId && tried.current !== courseId && s.courses.length) { tried.current = courseId; void s.refreshCourses() } }, [course, courseId, s])
 
   if (!course) {
-    if (!s.courses.length && !s.coursesError) return <Loading />
+    if ((!s.courses.length && !s.coursesError) || tried.current !== courseId) return <Loading />
     return <EmptyState title="Course not found" action={<Link to="/app/education/tutor" className="font-semibold text-accent underline">All courses</Link>}>You may not be enrolled in this course, or it no longer exists.</EmptyState>
   }
   const base = `/app/education/tutor/courses/${course.id}`
   const tabs = [
     { to: base, label: 'Overview', end: true },
-    { to: `${base}/tutor`, label: 'Tutor' },
     { to: `${base}/materials`, label: 'Materials' },
     { to: `${base}/practice`, label: 'Practice' },
     { to: `${base}/assessments`, label: 'Assessments' },

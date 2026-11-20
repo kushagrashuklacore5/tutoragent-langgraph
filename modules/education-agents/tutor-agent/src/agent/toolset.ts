@@ -20,6 +20,7 @@ import { growthService } from '../growth/service.ts'
 import { analysePatterns } from '../domain/exam.ts'
 import { chooseStrategy } from '../domain/strategy.ts'
 import { ToolRegistry, type ToolContext } from './tools.ts'
+import { createPersonalCourse } from '../courses/personal.ts'
 import { UUID_PATTERN, type Schema } from './schema.ts'
 
 const courseArg: Schema = { type: 'string', pattern: UUID_PATTERN, description: 'course id' }
@@ -47,14 +48,36 @@ async function conceptIn(t: Sql, courseId: string, conceptId: string | undefined
 }
 
 /** Build a plan proposal from the stored profile (deterministic; nothing is written). */
+const words = (x: string) => x.toLowerCase().replace(/[^a-z0-9ऀ-ॿ]+/g, ' ').split(' ').filter((w) => w.length >= 4)
+/** Course topics matching the student's chapter/topic (by shared words), plus their unmastered prerequisites. */
+export function scopeToTopic(all: PlanConcept[], topic: string | undefined): { concepts: PlanConcept[]; note: string | null } {
+  if (!topic || /^(the )?complete material$|^poora material$|^all$/i.test(topic.trim())) return { concepts: all, note: null }
+  const want = new Set(words(topic))
+  const hits = all.filter((c) => { const w = words(c.name); return w.some((x) => want.has(x) || [...want].some((y) => x.startsWith(y.slice(0, 5)))) })
+  if (!hits.length) return { concepts: all, note: `I could not match "${topic}" to a topic of this course, so the plan covers the whole course.` }
+  const byId = new Map(all.map((c) => [c.id, c]))
+  const keep = new Set(hits.map((c) => c.id))
+  // only DIRECT unmastered prerequisites, at most 2 per topic (live: an AI syllabus chained every chapter, so
+  // "Trigonometry" pulled in the whole course)
+  for (const h of hits) for (const pid of h.prerequisites.filter((x) => { const pc = byId.get(x); return pc && !pc.mastered && !keep.has(x) }).slice(0, 2)) keep.add(pid)
+  const added = keep.size - hits.length
+  return { concepts: all.filter((c) => keep.has(c.id)), note: `Focused on "${topic}": ${hits.length} topic(s)${added ? ` plus ${added} prerequisite(s) you will need` : ''}.` }
+}
+
 export async function proposePlan(ctx: ToolContext, courseId: string): Promise<Proposal> {
   const course = await requireEnrolled(ctx.t, ctx.p, courseId)
   if (course.role !== 'student') throw badRequest('not_a_student', 'Study plans are for students of this course')
   const profile = (await loadProfile(ctx.d, ctx.p, ctx.t)) ?? {}
-  if (!profile.dailyMinutes) throw badRequest('profile_incomplete', 'Daily study time is not known yet')
+  // a class preview needs no daily budget; everything else plans against the student's real time
+  const dailyMinutes = profile.dailyMinutes ?? (profile.objective === 'class_prep' ? 45 : null)
+  if (!dailyMinutes) throw badRequest('profile_incomplete', 'Daily study time is not known yet')
   const examDate = profile.examDate && profile.examDate !== 'none' ? profile.examDate : null
-  const concepts = await planConcepts(ctx.t, courseId, ctx.now)
-  if (!concepts.length) throw badRequest('no_concepts', 'This course has no approved topics yet')
+  const all = await planConcepts(ctx.t, courseId, ctx.now)
+  if (!all.length) throw badRequest('no_concepts', 'This course has no approved topics yet')
+  // scope to the chapter/topic the student asked for, plus the prerequisites it needs
+  const scoped = scopeToTopic(all, profile.topic)
+  const preview = profile.objective === 'class_prep' && profile.depth !== 'deep'
+  const concepts = preview ? scoped.concepts.map((c) => ({ ...c, estMinutes: Math.max(10, Math.round(c.estMinutes * 0.35)) })) : scoped.concepts
   const due = (await ctx.t.query<{ n: number }>(`select count(*)::int as n from education_tutor.cards where course_id = $1 and user_id = platform.current_user_id() and due_at < now() + interval '7 days'`, [courseId])).rows[0]!.n
   const studyDaysPerWeek = profile.studyDaysPerWeek ?? 6
   // past-paper evidence (when there is any) raises the weight of frequently examined topics; priorities stay estimates
@@ -64,9 +87,16 @@ export async function proposePlan(ctx: ToolContext, courseId: string): Promise<P
   const weighted = ready.length ? concepts.map((c) => ({ ...c, examWeight: c.examWeight * (1 + (patterns.topics.find((x) => x.conceptId === c.id)?.priority ?? 0)) })) : concepts
   const daysToExam = examDate ? Math.ceil((Date.parse(`${examDate}T00:00:00Z`) - ctx.now.getTime()) / 86_400_000) : null
   const strategy = chooseStrategy({ objective: profile.objective, daysToExam })
-  const roadmap = buildRoadmap({ today: ctx.now, examAt: examDate ? new Date(`${examDate}T00:00:00Z`) : null, dailyMinutes: profile.dailyMinutes, studyDaysPerWeek, concepts: weighted, reviewMinutesPerDay: Math.ceil((due * 1.5) / 7), diagnosticFirst: strategy.name === 'exam_sprint' || strategy.name === 'exam_prep' })
+  const roadmap = buildRoadmap({ today: ctx.now, examAt: examDate ? new Date(`${examDate}T00:00:00Z`) : null, dailyMinutes, studyDaysPerWeek, concepts: weighted, reviewMinutesPerDay: Math.ceil((due * 1.5) / 7), diagnosticFirst: strategy.name === 'exam_sprint' || strategy.name === 'exam_prep' })
+  if (scoped.note) roadmap.rationale.unshift(scoped.note)
+  roadmap.rationale.unshift(profile.material === 'own'
+    ? 'Your uploaded material is the source: lessons follow it, and its own worked examples and exercises become your practice set (checked extra questions only fill gaps). The set is built once, right after you approve.'
+    : profile.material === 'curriculum'
+      ? 'Source: your course syllabus (NCERT/board). A practice set for every topic is built once, right after you approve; every answer is checked.'
+      : 'Source: notes prepared for you, within your class and syllabus. A practice set for every topic is built once, right after you approve; every answer is checked.')
+  if (preview) roadmap.rationale.unshift('Class preview: the key ideas, words and prerequisites only, so the next lesson is easy to follow.')
   roadmap.rationale.unshift(`Strategy: ${strategy.label} (${strategy.reasons.join('; ')}).`, ready.length ? `Topic priorities use ${ready.length} past/sample paper(s) you or your educator added (frequencies are counted, not guaranteed).` : 'No past papers added yet: priorities use the syllabus weights. Add papers in Exam insights to sharpen them.')
-  return { id: randomUUID(), courseId, courseTitle: course.title, createdAt: ctx.now.toISOString(), inputs: { examDate, dailyMinutes: profile.dailyMinutes, studyDaysPerWeek }, roadmap, strategy: { name: strategy.name, label: strategy.label, mix: strategy.mix }, examEvidence: { papers: ready.length, top: patterns.topics.slice(0, 5).map((x) => ({ name: x.name, priority: x.priority, verified: x.verified, confidence: x.confidence })) } }
+  return { id: randomUUID(), courseId, courseTitle: course.title, createdAt: ctx.now.toISOString(), inputs: { examDate, dailyMinutes, studyDaysPerWeek }, roadmap, strategy: { name: strategy.name, label: strategy.label, mix: strategy.mix }, examEvidence: { papers: ready.length, top: patterns.topics.slice(0, 5).map((x) => ({ name: x.name, priority: x.priority, verified: x.verified, confidence: x.confidence })) } }
 }
 
 /** Apply an approved proposal atomically: goal, plan version, milestone/checkpoint tasks (previous open ones cancelled). */
@@ -165,7 +195,7 @@ export function companionTools(): ToolRegistry {
       await requireEnrolled(ctx.t, ctx.p, a.courseId)
       const c = await conceptIn(ctx.t, a.courseId, a.conceptId)
       const n = (await ctx.t.query<{ n: number }>(`select count(*)::int as n from education_tutor.items where course_id = $1 and ($2::uuid is null or concept_id = $2) and status = 'approved' and retired_at is null and type in ('mcq', 'numeric', 'expression')`, [a.courseId, c?.id ?? null])).rows[0]!.n
-      return { href: `${base(a.courseId)}/practice${c ? `?conceptId=${c.id}` : ''}`, label: c ? `Practise: ${c.name}` : 'Practise your weakest topic', available: n }
+      return { href: `/practice/${a.courseId}${c ? `?conceptId=${c.id}` : ''}`, label: c ? `Practise: ${c.name}` : 'Practise your weakest topic', available: n }
     },
   })
   r.register({
@@ -187,7 +217,7 @@ export function companionTools(): ToolRegistry {
     async run(ctx, a: { courseId: string }) {
       await requireEnrolled(ctx.t, ctx.p, a.courseId)
       const r2 = (await ctx.t.query<{ now: number; week: number }>(`select count(*) filter (where due_at <= now())::int as now, count(*) filter (where due_at <= now() + interval '7 days')::int as week from education_tutor.cards where course_id = $1 and user_id = platform.current_user_id()`, [a.courseId])).rows[0]!
-      return { dueNow: r2.now, dueWeek: r2.week, href: `${base(a.courseId)}/revision` }
+      return { dueNow: r2.now, dueWeek: r2.week, href: `${base(a.courseId)}/revision`, label: r2.now ? `Revise ${r2.now} due card(s)` : 'Open revision' }
     },
   })
   r.register({
@@ -255,7 +285,7 @@ export function companionTools(): ToolRegistry {
     input: obj({ courseId: courseArg }, ['courseId']), output: out({ xp: { type: 'integer' }, levels: { type: 'array' } }, ['xp', 'levels']),
     async run(ctx, a: { courseId: string }) {
       const g = await growthService(ctx.d).growth(ctx.p, a.courseId)
-      return { xp: g.xp, levels: g.levels.map((l) => ({ topic: l.name, level: l.label })), streak: g.streak, badges: g.badges.map((b) => b.title), personalBests: g.personalBests.slice(0, 5).map((b) => ({ title: b.title, best: b.best, latest: b.latest })), outcomes: g.outcomes, href: '/growth' }
+      return { xp: g.xp, levels: g.levels.map((l) => ({ topic: l.name, level: l.label })), streak: g.streak, badges: g.badges.map((b) => b.title), personalBests: g.personalBests.slice(0, 5).map((b) => ({ title: b.title, best: b.best, latest: b.latest })), outcomes: g.outcomes, href: '/growth', label: 'Your progress' }
     },
   })
   r.register({
@@ -266,6 +296,38 @@ export function companionTools(): ToolRegistry {
     async run(ctx, a: { bookId: string }) {
       const p = await growthService(ctx.d).buildPackage(ctx.p, a.bookId)
       return { version: p.version, href: `/studio/${a.bookId}/package`, label: 'Open your chapter package', newFlashcards: p.newFlashcards, mockTest: !!p.package.mockTestId }
+    },
+  })
+  r.register({
+    name: 'plan.show', capability: 'strategy', effect: 'read', approval: 'none', modelCallable: true,
+    description: 'Open the current study plan of the student (what is next, milestones, what was missed)',
+    input: obj({ courseId: courseArg }, ['courseId']), output: out({ href: { type: 'string' }, label: { type: 'string' } }, ['href', 'label']),
+    async run(ctx, a: { courseId: string }) {
+      await requireEnrolled(ctx.t, ctx.p, a.courseId)
+      const has = (await ctx.t.query('select 1 from education_tutor.plans where course_id = $1 and user_id = platform.current_user_id() limit 1', [a.courseId])).rowCount
+      return { href: `${base(a.courseId)}/plan`, label: has ? 'Your study plan' : 'Study plan (not made yet)', hasPlan: !!has }
+    },
+  })
+  r.register({
+    name: 'materials.open', capability: 'resources', effect: 'read', approval: 'none', modelCallable: true,
+    description: 'Open the material workspace where the student uploads their own NCERT chapter, notes, PDF or photos (then it is used for teaching)',
+    input: obj({ courseId: courseArg }, ['courseId']), output: out({ href: { type: 'string' }, label: { type: 'string' } }, ['href', 'label']),
+    async run(ctx, a: { courseId: string }) {
+      await requireEnrolled(ctx.t, ctx.p, a.courseId)
+      return { href: `${base(a.courseId)}/materials`, label: 'Upload your material' }
+    },
+  })
+  r.register({
+    name: 'course.create', capability: 'curriculum', effect: 'write', approval: 'none', modelCallable: true,
+    description: 'Create a complete self-study course (structured syllabus of topics) for ANY subject or skill the student wants that is not one of their courses (e.g. Geography class 9, Excel, guitar basics). Use it instead of saying the subject is unavailable.',
+    input: obj({ subject: { type: 'string', minLength: 2, maxLength: 160 }, level: { type: 'string', maxLength: 60 } }, ['subject']),
+    output: out({ courseId: { type: 'string' }, title: { type: 'string' }, topics: { type: 'array' }, href: { type: 'string' }, label: { type: 'string' } }, ['courseId', 'title']),
+    idempotencyKey: (a: { subject: string }, ctx) => `course.create:${ctx.conversationId}:${a.subject.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+    timeoutMs: 45000,
+    async run(ctx, a: { subject: string; level?: string }) {
+      const profile = (await loadProfile(ctx.d, ctx.p, ctx.t)) ?? {}
+      const c = await createPersonalCourse(ctx.d, ctx.p, { subject: a.subject, level: a.level ?? profile.level, goal: profile.objective, language: profile.language, chapter: profile.topic })
+      return { ...c, topics: c.topics.slice(0, 16), href: base(c.courseId), label: `Your course: ${c.title}` }
     },
   })
   return r

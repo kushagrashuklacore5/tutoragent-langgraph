@@ -10,6 +10,7 @@
 import { createHash } from 'node:crypto'
 import type { ModuleDeps, Principal } from '@platform/contracts'
 import type { Sql } from '@platform/tenancy-db'
+import { status, TOOL_STATUS } from './status.ts'
 import { validate, type Schema } from './schema.ts'
 
 export type Capability = 'strategy' | 'curriculum' | 'teaching' | 'assessment' | 'revision' | 'progress' | 'resources'
@@ -95,6 +96,8 @@ export async function executeTool(reg: ToolRegistry, base: Omit<ToolContext, 't'
   const problems = validate(def.input, args)
   if (problems.length) return finish({ status: 'rejected', attempts: 0, error: { code: 'invalid_args', message: problems.slice(0, 3).join('; ') } })
   if (def.approval === 'required' && !o.approved) return finish({ status: 'needs_approval', attempts: 0 })
+  const st = TOOL_STATUS[name]
+  if (st) status(st[0], st[1])
 
   const key = def.idempotencyKey?.(args as never, base)
   if (key) {

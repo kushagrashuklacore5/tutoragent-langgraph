@@ -25,15 +25,16 @@ test('onboarding: one question at a time, required first, date only for date-bou
   let p = mergeProfile({}, { courseId: C }, now, [C]).profile
   assert.equal(nextSlot(p, []), 'objective')
   p = { ...p, objective: 'conceptual_mastery' }
-  assert.deepEqual(missingRequired(p), ['dailyMinutes'], 'no exam date needed for conceptual mastery')
+  assert.deepEqual(missingRequired(p), ['topic', 'dailyMinutes', 'material'], 'no exam date needed for conceptual mastery')
   p = { ...p, objective: 'exam_prep' }
-  assert.equal(nextSlot(p, ['objective']), 'examDate')
-  p = { ...p, examDate: '2026-12-20', dailyMinutes: 60 }
-  assert.equal(nextSlot(p, ['objective', 'examDate', 'dailyMinutes']), 'confidence')
-  assert.equal(nextSlot({ ...p, confidence: 3 }, ['objective', 'examDate', 'dailyMinutes', 'confidence']), 'level')
-  assert.equal(nextSlot({ ...p, confidence: 3 }, ['confidence', 'level']), null, 'at most two optional questions')
-  assert.ok(readyToPlan(p, ['confidence', 'level']))
-  assert.equal(nextSlot({ ...p, skipped: ['confidence', 'level', 'learningStyle', 'hasMaterials'] }, []), null, 'skipped slots are not asked')
+  assert.equal(nextSlot(p, ['objective']), 'topic', 'the chapter/topic comes first')
+  p = { ...p, topic: 'Limits', examDate: '2026-12-20', dailyMinutes: 60 }
+  assert.equal(nextSlot(p, ['objective', 'topic', 'examDate', 'dailyMinutes']), 'material', 'the material source is required before teaching')
+  const q = { ...p, material: 'ai' as const, materialFor: C }
+  assert.equal(nextSlot(q, ['objective', 'examDate', 'dailyMinutes', 'material']), 'confidence')
+  assert.equal(nextSlot({ ...q, confidence: 3 }, ['confidence', 'level']), null, 'at most two optional questions')
+  assert.ok(readyToPlan(q, ['confidence', 'level']))
+  assert.equal(nextSlot({ ...p, material: 'ai', materialFor: C, skipped: ['confidence', 'level', 'learningStyle', 'hasMaterials'] }, []), null, 'skipped slots are not asked')
 })
 
 test('direct answers are parsed without the model (minutes, dates, yes/no, skip)', () => {
@@ -156,7 +157,7 @@ test('executor: unknown tools, model-forbidden tools, bad args and missing appro
 
 test('follow-up budget counts volunteered answers; replies carry one question', async () => {
   const { oneQuestion } = await import('../src/agent/orchestrator.ts')
-  const p = { courseId: C, objective: 'exam_prep' as const, examDate: '2026-12-20', dailyMinutes: 60, confidence: 3, level: 'undergraduate' as const }
+  const p = { courseId: C, objective: 'exam_prep' as const, topic: 'Limits', material: 'curriculum' as const, materialFor: C, examDate: '2026-12-20', dailyMinutes: 60, confidence: 3, level: 'undergraduate' as const }
   assert.equal(nextSlot(p, ['confidence']), null, 'two optional facts known (one volunteered): no third follow-up')
   assert.ok(readyToPlan(p, ['confidence']))
   assert.equal(oneQuestion('Great. How confident are you, 1-5? And which year are you in?'), 'Great. How confident are you, 1-5?')

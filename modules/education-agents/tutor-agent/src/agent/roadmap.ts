@@ -80,7 +80,8 @@ export function buildRoadmap(input: RoadmapInput): Roadmap {
     const due = ids.map((id) => finish.get(id)!).sort().at(-1)!
     const seq = milestones.length + 1
     const names = ids.map((id) => name.get(id)!)
-    milestones.push({ seq, title: `Week ${w + 1}: ${names.slice(0, 3).join(', ')}${names.length > 3 ? ` +${names.length - 3}` : ''}`, conceptIds: ids, conceptNames: names, due })
+    // self-paced by default: steps, not weeks, unless a deadline makes the calendar matter
+    milestones.push({ seq, title: `${fixedDate ? `Week ${w + 1}` : `Step ${seq}`}: ${names.slice(0, 3).join(', ')}${names.length > 3 ? ` +${names.length - 3}` : ''}`, conceptIds: ids, conceptNames: names, due })
     const cpDate = new Date(Math.min(new Date(`${due}T00:00:00Z`).getTime() + DAY, end.getTime()))
     checkpoints.push({ seq, title: `Checkpoint ${seq}: quick practice check on ${names.slice(0, 3).join(', ')}`, conceptIds: ids, conceptNames: names, due: ymd(cpDate) })
   }

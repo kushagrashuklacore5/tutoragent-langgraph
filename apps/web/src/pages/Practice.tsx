@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { TUTOR, api } from '../lib/api.ts'
 import { masteryView, type AttemptResult, type Confidence, type ConceptMastery, type PracticeNext } from '../lib/tutor.ts'
@@ -22,7 +22,8 @@ export default function Practice() {
   const next = useLoad(`p:${course.id}:${conceptId}:${round}`, async (sig) => {
     const url = (id?: string) => `${TUTOR}/courses/${course.id}/practice/next${id ? `?conceptId=${id}` : ''}`
     const first = await api.get<PracticeNext>(url(conceptId || undefined), sig)
-    if (first.item || conceptId) return first
+    if (first.item) return first
+    if (conceptId) return first
     // "Recommended" picked a concept with no unseen items: try the next-weakest concepts instead of stopping
     const ms = await api.get<ConceptMastery[]>(`${TUTOR}/courses/${course.id}/mastery`, sig)
     for (const m of [...ms].sort((a, b) => a.pMastery - b.pMastery)) {
@@ -50,11 +51,12 @@ export default function Practice() {
           <EmptyState icon="check" title="Round complete" action={<div className="flex gap-2"><Button variant="primary" onClick={() => { setN(0); setRound((r) => r + 1) }}>Another round</Button><Link to={`/app/education/tutor/courses/${course.id}`} className="inline-flex min-h-11 items-center px-3 font-semibold text-accent underline">See your concepts</Link></div>}>
             Ten answers recorded. Your estimates have been updated from them.
           </EmptyState>
-        ) : next.loading ? <Card><Skeleton lines={4} /></Card> : next.error ? <ErrorNote error={next.error} retry={next.reload} /> : !next.data!.item ? (
-          <EmptyState icon="target" title="No new questions right now">{next.data!.message ?? 'You have seen every question for this concept today.'} Try another concept, or come back tomorrow.</EmptyState>
-        ) : (
+        ) : next.loading ? <Card><p className="mb-2 text-sm text-muted">Finding your next question…</p><Skeleton lines={4} /></Card> : next.error ? <ErrorNote error={next.error} retry={next.reload} /> : !next.data!.item ? (
+          <SetStatus courseId={course.id} conceptId={next.data!.conceptId || conceptId} onReady={() => setRound((r) => r + 1)} message={next.data!.message} />
+        ) : (<>
+          {next.data!.source ? <p className="mb-2 inline-flex items-center gap-1 rounded-full bg-accent/10 px-3 py-1 text-xs font-semibold text-accent">{next.data!.source.kind === 'lesson' ? '📘 From your lesson' : '📖 From your material'}: {next.data!.source.filename}{next.data!.source.page ? `, p. ${next.data!.source.page}` : ''}</p> : null}
           <ItemCard key={next.data!.item.id} data={next.data!} before={concept} onNext={() => { setN((x) => x + 1); setRound((r) => r + 1) }} />
-        )}
+        </>)}
       </div>
     </>
   )
@@ -150,7 +152,7 @@ function HintLadder({ itemId }: { itemId: string }) {
   const [steps, setSteps] = useState<HintStep[]>([])
   const h = useAction()
   const next = steps.length ? steps.at(-1)!.next : 1
-  const ask = async () => { if (!next) return; const r = await h.run(() => api.post<HintStep>(`${TUTOR}/items/${itemId}/hints`, { level: next })); if (r) setSteps((s) => [...s, r]) }
+  const ask = async (direct = false) => { const level = direct ? 6 : next; if (!level) return; const r = await h.run(() => api.post<HintStep>(`${TUTOR}/items/${itemId}/hints`, { level, direct })); if (r) setSteps((s) => [...s.filter((x) => x.level !== r.level), r]) }
   return (
     <div className="mt-4 rounded-lg border border-dashed border-line-strong p-3">
       {steps.length ? (
@@ -163,9 +165,42 @@ function HintLadder({ itemId }: { itemId: string }) {
             </li>
           ))}
         </ol>
-      ) : <p className="text-sm text-muted">Stuck? Hints come one small step at a time — try each before the next.</p>}
+      ) : <p className="text-sm text-muted">How do you want to solve it? <b>Guided solve</b> gives one small hint at a time; <b>Show complete solution</b> explains it fully (it then counts as a helped answer, not towards mastery).</p>}
       {h.error ? <div className="mt-2"><ErrorNote error={h.error} /></div> : null}
-      {next ? <Button type="button" className="mt-2" busy={h.busy} onClick={() => void ask()}>{next === 6 ? 'Show the full solution' : `Hint ${next}: ${RUNG[next - 1]}`}</Button> : null}
+      <div className="mt-2 flex flex-wrap gap-2">
+        {next && next < 6 ? <Button type="button" busy={h.busy} onClick={() => void ask()}>{steps.length ? `Next hint: ${RUNG[next - 1]}` : 'Guided solve'}</Button> : null}
+        {next ? <Button type="button" variant={next === 6 ? 'primary' : 'secondary'} busy={h.busy} onClick={() => void ask(true)}>Show complete solution</Button> : null}
+      </div>
     </div>
+  )
+}
+
+/** No question to serve: show the plan's question set (built once, in the background) or offer to build this topic's set. */
+function SetStatus({ courseId, conceptId, onReady, message }: { courseId: string; conceptId: string; onReady: () => void; message?: string }) {
+  const st = useLoad<{ state: { questionSet?: { courseId: string; total: number; done: number; status: string; fromDocument: number } | null } }>(`qs:${courseId}`, (sig) => api.get(`${TUTOR}/agent`, sig))
+  const qs = st.data?.state.questionSet?.courseId === courseId ? st.data.state.questionSet : null
+  const prep = useAction()
+  useEffect(() => {
+    if (qs?.status !== 'building') return
+    const t = window.setInterval(() => { st.reload(); onReady() }, 8000)
+    return () => window.clearInterval(t)
+  }, [qs?.status]) // eslint-disable-line react-hooks/exhaustive-deps
+  if (qs?.status === 'building') {
+    return (
+      <Card>
+        <p className="font-semibold">Your question set is being prepared</p>
+        <p className="mt-1 text-sm text-muted">Topic {Math.min(qs.done + 1, qs.total)} of {qs.total}: first the examples and exercises from your own material, then checked extra questions. This happens once for your whole plan.</p>
+        <div className="mt-3 h-1.5 rounded-full bg-line" aria-hidden><div className="anim h-1.5 rounded-full bg-accent" style={{ width: `${(qs.done / Math.max(1, qs.total)) * 100}%` }} /></div>
+      </Card>
+    )
+  }
+  return (
+    <EmptyState icon="target" title="Learn it first, then practise" action={<div className="flex flex-wrap gap-2">
+      <Link to={`/app/education/tutor/courses/${courseId}/tutor${conceptId ? `?conceptId=${conceptId}` : ''}`} className="uc-action">Open the lesson in your book</Link>
+      <Button busy={prep.busy} onClick={async () => { const r = await prep.run(() => api.post<{ added: number }>(`${TUTOR}/courses/${courseId}/practice/prepare`, { conceptId: conceptId || undefined })); if (r) onReady() }}>Prepare questions anyway</Button>
+    </div>}>
+      {message ?? 'You have answered every question here.'} Practice questions are made from what your tutor teaches you in the book (and your own material), once you have studied this topic.
+      {prep.error ? <ErrorNote error={prep.error} /> : null}
+    </EmptyState>
   )
 }

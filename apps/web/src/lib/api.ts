@@ -39,7 +39,8 @@ export function isEndpointMissing(e: unknown): boolean {
 export function describeError(e: unknown): string {
   if (e instanceof DOMException && e.name === 'AbortError') return 'Cancelled.'
   if (!(e instanceof ApiError)) return e instanceof TypeError ? 'You appear to be offline or the server cannot be reached. Check your connection and try again.' : 'Something went wrong. Please try again.'
-  switch (e.code) {
+  switch (e.code.replace(/^ai_/, '')) {
+    case 'auth': case 'quota_exhausted': case 'provider_error': return 'The AI tutor is unavailable right now (the AI service connection needs attention from your administrator). Practice, revision and your plan still work.'
     case 'network': return 'You appear to be offline or the server cannot be reached. Check your connection and try again.'
     case 'unauthorized': return 'Your session has ended. Please sign in again.'
     case 'budget_exceeded': return 'Your institution has used its AI allowance for now. Practice and revision still work.'

@@ -42,8 +42,8 @@ function respond(req: GenerateRequest) {
       { type: 'exam', text: 'Common mistake: assuming the limit equals f(a).' }, { type: 'summary', text: 'Limits describe approach.' },
     ].map((x) => JSON.stringify(x)).join('\n'))
   }
-  if (/Ek Bharat study companion: a friendly/.test(sys)) return out(decide.shift() ?? { intent: 'other', reply: 'Okay.' })
-  if (/Write your reply to the student as JSON/.test(sys)) return out({ reply: 'Here is your plan.' })
+  if (/Ek Bharat study companion: ONE friendly/.test(sys)) return out(decide.shift() ?? { intent: 'other', reply: 'Okay.' })
+  if (/Write your reply as JSON/.test(sys)) return out({ reply: 'Here is your plan.' })
   return out({ answer: 'ok' })
 }
 
@@ -188,8 +188,8 @@ test('chapter package: from the taught book, flashcards into revision once, past
 test('companion: exam goal → planning reads past papers and prepares a starting-point check', async () => {
   const conv = (await w.h.call('POST', `${T}/agent/conversations`, w.stu)).json.conversationId
   const inDays = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10)
-  decide.push({ intent: 'request_plan', profile: { objective: 'exam_prep', examDate: inDays(7), dailyMinutes: 60, skip: ['confidence', 'level'] }, reply: 'Planning.' })
-  const r = await w.h.call('POST', `${T}/agent/messages`, w.stu, { conversationId: conv, message: 'Exam in 7 days, 1 hour a day, make my plan now', language: 'en' })
+  decide.push({ intent: 'request_plan', profile: { objective: 'exam_prep', topic: 'general', material: 'curriculum', examDate: inDays(7), dailyMinutes: 60, skip: ['confidence', 'level'] }, reply: 'Planning.' })
+  const r = await w.h.call('POST', `${T}/agent/messages`, w.stu, { conversationId: conv, message: 'Exam in 7 days, 1 hour a day, use the course syllabus, make my plan now', language: 'en' })
   assert.equal(r.status, 200, JSON.stringify(r.json))
   const cards = r.json.messages[1].cards
   const steps = cards.find((c: { type: string }) => c.type === 'workflow').workflow.steps.map((s: { name: string; status: string }) => `${s.name}:${s.status}`)

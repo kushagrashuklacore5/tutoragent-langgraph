@@ -35,11 +35,23 @@ export interface ConvState {
   appliedPlan: { courseId: string; version: number; proposalId: string; appliedAt: string } | null
   nextSession: (SessionAgenda & { courseId: string }) | null
   topic: { conceptId: string | null; name: string } | null
+  /** the book the learning journey is happening in ("continue" opens it at the saved lecture position) */
+  activeBook?: { id: string; title: string; courseId?: string } | null
+  /** the student's uploaded document that is the source of the plan for that course */
+  sourceDoc?: { id: string; title: string; courseId: string } | null
+  /** progress of the plan's question set (built once in the background) */
+  questionSet?: { courseId: string; total: number; done: number; status: 'building' | 'ready'; added: number; fromDocument: number } | null
 }
-export const initialState = (): ConvState => ({ phase: 'onboarding', asked: [], lastAsked: null, proposal: null, workflow: null, appliedPlan: null, nextSession: null, topic: null })
+export const initialState = (): ConvState => ({ phase: 'onboarding', asked: [], lastAsked: null, proposal: null, workflow: null, appliedPlan: null, nextSession: null, topic: null, activeBook: null })
 
 export interface Card {
-  type: 'plan_proposal' | 'links' | 'workflow' | 'agenda' | 'sources'
+  type: 'plan_proposal' | 'links' | 'workflow' | 'agenda' | 'sources' | 'choices' | 'book_answer' | 'upload'
+  /** a doubt answered inside the book: positions/ids only (the answer text is in the encrypted message) */
+  bookAnswer?: { bookId: string; resumeTo: { pageNo: number; blockId: string | null } | null; notebookVersion: number }
+  /** one-tap answers to the question just asked (the tap sends the label as the message) */
+  choices?: string[]
+  /** open this workspace automatically (the agent acted on the student's request) */
+  auto?: boolean
   proposal?: Pick<Proposal, 'id' | 'courseId' | 'courseTitle' | 'inputs' | 'strategy' | 'examEvidence'> & { roadmap: Omit<Roadmap, 'plan'> }
   links?: Link[]
   workflow?: Workflow

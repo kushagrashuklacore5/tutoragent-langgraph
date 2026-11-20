@@ -44,7 +44,7 @@ export default function Overview() {
                     {m ? <MasteryChip m={m} /> : mastery.loading ? <Skeleton lines={1} /> : null}
                     <div className="flex gap-3 text-sm">
                       <Link to={`${base}/practice?conceptId=${c.id}`} className="inline-flex min-h-11 items-center font-semibold text-accent underline-offset-2 hover:underline">Practise</Link>
-                      <Link to={`${base}/tutor?conceptId=${c.id}`} className="inline-flex min-h-11 items-center font-semibold text-accent underline-offset-2 hover:underline">Ask the tutor</Link>
+                      <Link to={`${base}/tutor?conceptId=${c.id}`} className="inline-flex min-h-11 items-center font-semibold text-accent underline-offset-2 hover:underline">Learn in the book</Link>
                     </div>
                   </div>
                 </li>

@@ -22,6 +22,7 @@ export default function SignIn() {
   const [tenantSlug, setSlug] = useState(() => { try { return localStorage.getItem('ebs.tenant') ?? '' } catch { return '' } })
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
+  const [devLink, setDevLink] = useState<string | null>(null)
   const a = useAction()
 
   const submit = async (e: FormEvent) => {
@@ -32,14 +33,17 @@ export default function SignIn() {
       // the link opens in a new tab: keep the destination for after verification
       if (next?.startsWith('/') && !next.startsWith('//')) localStorage.setItem('ebs.next', next)
     } catch { /* ignore */ }
-    const ok = await a.run(() => api.post('/api/auth/magic-link', { tenantSlug: tenantSlug.trim(), email: email.trim() }))
-    if (ok !== undefined) setSent(true)
+    const ok = await a.run(() => api.post<{ status: string; devLink?: string }>('/api/auth/magic-link', { tenantSlug: tenantSlug.trim(), email: email.trim() }))
+    if (ok !== undefined) { setDevLink(ok.devLink ?? null); setSent(true) }
   }
 
   if (sent) {
     return (
       <AuthFrame title="Check your email">
         <Notice tone="ok" title="Sign-in link sent">If <strong>{email}</strong> is a member of <strong>{tenantSlug}</strong>, a sign-in link is on its way. It works once and expires soon.</Notice>
+        {devLink ? (
+          <Notice tone="info" title="Development mode">No email is sent on this local setup. <a href={devLink} className="font-semibold underline">Open my sign-in link</a></Notice>
+        ) : null}
         <Button variant="ghost" className="mt-4 self-start" onClick={() => setSent(false)}>Use a different email</Button>
       </AuthFrame>
     )

@@ -10,6 +10,7 @@ export const P = {
   read: `${ID}:course.read`,
   manage: `${ID}:course.manage`,
   study: `${ID}:study`,
+  insights: `${ID}:product.insights`,
 } as const
 
 const UUID = /^[0-9a-f-]{36}$/i

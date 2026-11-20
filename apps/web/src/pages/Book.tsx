@@ -1,16 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router'
 import { api, describeError } from '../lib/api.ts'
-import { S, blockSpeech, flatBlocks, nextPosition, notebookMarkdown, prevPosition, searchBook, streamSection, type Annotation, type AnswerResult, type AskResponse, type Block, type BookView, type Notebook, type Page, type Position, type StudioState, type StudyMode } from '../lib/studio.ts'
-import { speak, stopSpeaking, type VoiceLang } from '../lib/voice.ts'
+import { S, blockSpeech, flatBlocks, nextPosition, notebookMarkdown, prevPosition, searchBook, streamSection, type Annotation, type AnswerResult, type Block, type BookView, type Notebook, type Page, type Position, type StudioState, type StudyMode } from '../lib/studio.ts'
+import { isPaused, pauseSpeaking, resumeSpeaking, speak, stopSpeaking, type VoiceLang } from '../lib/voice.ts'
 import { Button, ErrorNote, Loading, inputCls, useAction, useLoad } from '../ui/kit.tsx'
-import { MicButton } from '../ui/VoiceControls.tsx'
+import { UniversalChat } from '../chat/UniversalChat.tsx'
 
 type Panel = 'tutor' | 'notes' | 'contents' | 'search'
-interface Msg { id: string; role: 'student' | 'tutor'; text?: string; blocks?: Block[]; followUp?: string; resumeTo?: Position | null; kind?: 'page' | 'answer' | 'info'; links?: { label: string; href: string }[] }
 const MODES: { v: StudyMode; label: string }[] = [{ v: 'read', label: 'Read' }, { v: 'listen', label: 'Listen' }, { v: 'read_listen', label: 'Read + listen' }, { v: 'conversation', label: 'Conversation' }]
 const listens = (m: StudyMode) => m !== 'read'
-const uid = () => Math.random().toString(36).slice(2, 10)
 
 function useWide() {
   const q = '(min-width: 1280px)'
@@ -31,7 +29,7 @@ export default function Book() {
 function BookDesk({ initial }: { initial: BookView }) {
   const book = initial.book
   const wide = useWide()
-  const [pages, setPages] = useState<Page[]>(initial.pages)
+  const [pages, setPages] = useState<Page[]>(() => lessonOnly(initial.pages))
   const [outline, setOutline] = useState(book.outline)
   const [state, setState] = useState<StudioState>(book.state)
   const [nb, setNb] = useState(initial.notebook)
@@ -40,15 +38,17 @@ function BookDesk({ initial }: { initial: BookView }) {
   const [flip, setFlip] = useState<'' | 'flip-next' | 'flip-prev'>('')
   const [zoom, setZoom] = useState(1)
   const [panel, setPanel] = useState<Panel>('tutor')
-  const [msgs, setMsgs] = useState<Msg[]>([])
+  const [notice, setNotice] = useState<{ text: string; canResume: boolean } | null>(null)
   const [live, setLive] = useState<{ title: string; blocks: Block[]; files: string[] } | null>(null)
   const [playing, setPlaying] = useState(false)
   const [sel, setSel] = useState<{ text: string; pageNo: number; blockId: string | null; x: number; y: number } | null>(null)
   const [attached, setAttached] = useState<{ text: string; pageNo: number; blockId: string | null } | null>(null)
-  const [question, setQuestion] = useState('')
   const [flash, setFlash] = useState<string | null>(null)
-  const [source, setSource] = useState<'question' | 'voice'>('question')
   const act = useAction()
+  const deskRef = useRef<HTMLDivElement>(null)
+  const [full, setFull] = useState(false)
+  useEffect(() => { const on = () => setFull(!!document.fullscreenElement); document.addEventListener('fullscreenchange', on); return () => document.removeEventListener('fullscreenchange', on) }, [])
+  const toggleFull = () => { if (document.fullscreenElement) void document.exitFullscreen(); else void deskRef.current?.requestFullscreen?.().catch(() => {}) }
   const gen = useAction()
   const stopRef = useRef<() => void>(() => {})
   const viewTimer = useRef<number | undefined>(undefined)
@@ -67,7 +67,6 @@ function BookDesk({ initial }: { initial: BookView }) {
   const playingRef = useRef(false)
   const setPlay = (v: boolean) => { playingRef.current = v; setPlaying(v) }
 
-  const say = (m: Omit<Msg, 'id'>) => setMsgs((x) => [...x, { ...m, id: uid() }])
 
   // ── page turning ──
   const goPage = useCallback((n: number, opts: { quiet?: boolean } = {}) => {
@@ -76,7 +75,7 @@ function BookDesk({ initial }: { initial: BookView }) {
     if (opts.quiet) programmatic.current = true
     setCur(n)
   }, [cur, total])
-  useEffect(() => { if (!flip) return; const t = window.setTimeout(() => setFlip(''), 450); return () => window.clearTimeout(t) }, [flip, cur])
+  useEffect(() => { if (!flip) return; const t = window.setTimeout(() => setFlip(''), 700); return () => window.clearTimeout(t) }, [flip, cur])
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement
@@ -95,7 +94,8 @@ function BookDesk({ initial }: { initial: BookView }) {
     viewTimer.current = window.setTimeout(() => {
       void api.post<{ state: StudioState; prompt: string | null }>(`${S}/books/${book.id}/events`, { kind: 'view', pageNo: cur }).then((r) => {
         setState(r.state)
-        if (r.prompt) { say({ role: 'tutor', kind: 'page', text: r.prompt, resumeTo: r.state.interruption?.returnTo ?? null }); setPanel('tutor') }
+        setNotice(r.prompt ? { text: r.prompt, canResume: !!r.state.interruption } : null)
+        if (r.prompt) setPanel('tutor')
       }).catch(() => {})
     }, 1200)
     return () => window.clearTimeout(viewTimer.current)
@@ -130,13 +130,15 @@ function BookDesk({ initial }: { initial: BookView }) {
     await advanceTo(nxt)
     if (listens(mode) && (auto || playingRef.current)) {
       speakBlock(nxt, () => {
-        if (now.current.mode === 'conversation') { setPlay(false); say({ role: 'tutor', kind: 'info', text: 'Any question about this part? Ask me, or press Continue.' }) }
+        if (now.current.mode === 'conversation') { setPlay(false); setNotice({ text: 'Any question about this part? Ask me here, or press Continue.', canResume: false }) }
         else if (playingRef.current) void step(true)
       })
     }
   }
-  const play = () => { setPlay(true); const lec = now.current.lecture; if (lec.blockId) speakBlock(lec, () => { if (playingRef.current) void step(true) }); else void step(true) }
-  const pause = () => { setPlay(false); stopRef.current(); stopSpeaking() }
+  /** pause keeps the exact place in the sentence; play resumes there */
+  const hold = () => { setPlay(false); pauseSpeaking() }
+  const play = () => { if (isPaused()) { setPlay(true); resumeSpeaking(); return } setPlay(true); const lec = now.current.lecture; if (lec.blockId) speakBlock(lec, () => { if (playingRef.current) void step(true) }); else void step(true) }
+  const pause = () => { setPlay(false); stopRef.current(); resumeSpeaking(); stopSpeaking() }
   const replay = () => { if (lecture.blockId) speakBlock(lecture) }
   const back = () => { const p = prevPosition(pages, lecture); if (p) { show(p); speakBlock(p) } }
   const setMode = (m: StudyMode) => { pause(); setState((s) => ({ ...s, mode: m })); void api.post(`${S}/books/${book.id}/events`, { kind: 'mode', mode: m }).catch(() => {}) }
@@ -148,11 +150,12 @@ function BookDesk({ initial }: { initial: BookView }) {
     const s = outline.find((x) => x.id === sectionId)
     setLive({ title: s?.title ?? '', blocks: [], files: [] })
     setOutline((o) => o.map((x) => (x.id === sectionId ? { ...x, status: 'generating' } : x)))
-    const newPages = await gen.run(() => streamSection(book.id, sectionId, (e) => {
-      if (e.type === 'block') setLive((l) => (l ? { ...l, blocks: [...l.blocks, e.block] } : l))
+    const streamed = await gen.run(() => streamSection(book.id, sectionId, (e) => {
+      if (e.type === 'block' && e.block.type !== 'activity') setLive((l) => (l ? { ...l, blocks: [...l.blocks, e.block] } : l))
       if (e.type === 'sources') setLive((l) => (l ? { ...l, files: e.files } : l))
     }))
     setLive(null)
+    const newPages = streamed ? lessonOnly(streamed) : null
     if (!newPages) { setOutline((o) => o.map((x) => (x.id === sectionId ? { ...x, status: 'pending' } : x))); return }
     const merged = [...pages.filter((p) => !newPages.some((n) => n.pageNo === p.pageNo)), ...newPages].sort((a, b) => a.pageNo - b.pageNo)
     setPages(merged)
@@ -166,18 +169,12 @@ function BookDesk({ initial }: { initial: BookView }) {
   }
 
   // ── asking ──
-  const ask = async (q: string, ctx: { text: string; pageNo: number; blockId: string | null } | null, src: 'question' | 'voice') => {
-    if (!q.trim()) return
+  // a doubt was answered by the universal tutor inside this book: refresh state + notebook, read it aloud
+  const onAnswer = (text: string) => {
     pause()
-    setPanel('tutor')
-    say({ role: 'student', text: ctx ? `${q}\n“${ctx.text.slice(0, 160)}${ctx.text.length > 160 ? '…' : ''}”` : q })
-    setQuestion(''); setAttached(null); setSel(null)
-    const r = await act.run(() => api.post<AskResponse>(`${S}/books/${book.id}/ask`, { question: q, selection: ctx?.text, pageNo: ctx?.pageNo ?? cur, blockId: ctx?.blockId, source: src }))
-    if (!r) return
-    setState(r.state)
-    setNb((n) => ({ ...n, version: r.notebookVersion }))
-    say({ role: 'tutor', kind: 'answer', blocks: r.answer.blocks, followUp: r.answer.followUp, resumeTo: r.resumeTo })
-    if (listens(state.mode)) stopRef.current = speak(r.answer.blocks.map(blockSpeech), lang)
+    setNotice(null)
+    void api.get<BookView>(`${S}/books/${book.id}`).then((r) => { setState(r.book.state); setNb(r.notebook) }).catch(() => {})
+    if (listens(now.current.mode)) stopRef.current = speak([text], lang)
   }
   const resume = async () => {
     pause()
@@ -186,7 +183,7 @@ function BookDesk({ initial }: { initial: BookView }) {
     setState(r.state)
     show(r.position)
     if (r.position.blockId) { setFlash(r.position.blockId); window.setTimeout(() => setFlash(null), 1600) }
-    say({ role: 'tutor', kind: 'info', text: `Back to page ${r.position.pageNo} — we continue right after the highlighted part.` })
+    setNotice({ text: `Back to page ${r.position.pageNo} — we continue right after the highlighted part.`, canResume: false })
   }
 
   // ── selection → Ask / Highlight / Note ──
@@ -213,17 +210,24 @@ function BookDesk({ initial }: { initial: BookView }) {
     else await annotate('bookmark', pageNo, null, null)
   }
 
+  // practice opens OUTSIDE the book, offered once a section is finished (not mid-explanation)
+  const practiceAfter = (n: number): string | null => {
+    const sec = sectionOf(n)
+    if (!sec || byPage.get(n + 1)?.sectionId === sec.id) return null
+    return `/practice/${book.courseId}${sec.conceptId ? `?conceptId=${sec.conceptId}` : ''}`
+  }
   const interrupted = state.interruption
   return (
     <>
     <BreakReminder />
-    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_23rem]">
+    <div ref={deskRef} className="book-desk grid gap-4 xl:grid-cols-[minmax(0,1fr)_23rem]">
       <div className="min-w-0">
         <header className="mb-3 flex flex-wrap items-center gap-3">
           <Link to="/studio" className="text-sm text-accent">← Studio</Link>
           <h1 className="font-serif text-2xl leading-tight" tabIndex={-1}>{book.title}</h1>
           <span className="book-chip">{book.mode === 'source' ? 'From your material' : 'Built for you'}</span>
           <Link to={`/studio/${book.id}/package`} className="ml-auto text-sm font-semibold text-accent underline">Chapter package</Link>
+          <Button onClick={toggleFull} aria-pressed={full}>{full ? 'Exit full screen' : 'Full screen'}</Button>
         </header>
 
         {/* lecture bar */}
@@ -233,7 +237,7 @@ function BookDesk({ initial }: { initial: BookView }) {
             {MODES.map((m) => <option key={m.v} value={m.v}>{m.label}</option>)}
           </select>
           <Button onClick={back} aria-label="Previous part">◀</Button>
-          {listens(state.mode) ? (playing ? <Button onClick={pause}>Pause</Button> : <Button variant="primary" onClick={play}>{lecture.blockId ? 'Play' : 'Start lesson'}</Button>) : null}
+          {listens(state.mode) ? (playing ? <Button onClick={hold}>Pause</Button> : <Button variant="primary" onClick={play}>{lecture.blockId ? 'Play' : 'Start lesson'}</Button>) : null}
           <Button variant={listens(state.mode) ? 'secondary' : 'primary'} busy={gen.busy} onClick={() => void step()}>{lecture.blockId ? 'Continue' : 'Start lesson'}</Button>
           {listens(state.mode) ? <Button onClick={replay} disabled={!lecture.blockId}>Replay</Button> : null}
           <span className="mx-1 h-6 w-px bg-line" aria-hidden />
@@ -248,7 +252,9 @@ function BookDesk({ initial }: { initial: BookView }) {
         </div>
         {gen.error ? <ErrorNote error={gen.error} /> : null}
 
-        <div className="book-stage overflow-x-auto" onMouseUp={onMouseUp}>
+        <div className="book-stage overflow-x-auto" onMouseUp={onMouseUp}
+          onMouseMove={(e) => { const r = e.currentTarget.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5; e.currentTarget.style.setProperty('--tilt-y', `${(x * 2.2).toFixed(2)}deg`); e.currentTarget.style.setProperty('--tilt-x', `${(-y * 1.6).toFixed(2)}deg`) }}
+          onMouseLeave={(e) => { e.currentTarget.style.setProperty('--tilt-y', '0deg'); e.currentTarget.style.setProperty('--tilt-x', '0deg') }}>
           <div className="book-zoom origin-top" style={{ transform: zoom === 1 ? undefined : `scale(${zoom})`, width: zoom > 1 ? `${100 / zoom}%` : undefined }}>
             {!pages.length && !live ? (
               <div className="book-page grid place-items-center text-center">
@@ -264,8 +270,8 @@ function BookDesk({ initial }: { initial: BookView }) {
                   ? <LivePage key="live" live={live!} />
                   : byPage.has(n)
                     ? <BookPage key={n} page={byPage.get(n)!} section={sectionOf(n)?.title ?? ''} courseId={book.courseId} bookId={book.id} lecture={lecture} flash={flash} ann={ann}
-                        bookmarked={ann.some((a) => a.kind === 'bookmark' && a.pageNo === n)} onBookmark={() => void toggleBookmark(n)}
-                        onAskBlock={(b) => { setAttached({ text: b.term ? `${b.term}: ${b.text}` : b.text, pageNo: n, blockId: b.id }); setPanel('tutor'); window.setTimeout(() => document.getElementById('bk-q')?.focus(), 50) }}
+                        bookmarked={ann.some((a) => a.kind === 'bookmark' && a.pageNo === n)} onBookmark={() => void toggleBookmark(n)} practice={practiceAfter(n)}
+                        onAskBlock={(b) => { setAttached({ text: b.term ? `${b.term}: ${b.text}` : b.text, pageNo: n, blockId: b.id }); setPanel('tutor'); window.setTimeout(() => document.getElementById('msg-dock')?.focus(), 50) }}
                         onGoto={(p) => { show(p); if (p.blockId) { setFlash(p.blockId); window.setTimeout(() => setFlash(null), 1600) } }} />
                     : <div key={n} className="book-page" aria-hidden />)}
               </div>
@@ -275,7 +281,7 @@ function BookDesk({ initial }: { initial: BookView }) {
 
         {sel ? (
           <div className="book-select-pop flex gap-1 rounded-lg border border-line bg-surface p-1 shadow-lg" style={{ left: sel.x, top: sel.y }} role="toolbar" aria-label="Selected text">
-            <Button variant="primary" onMouseDown={(e) => e.preventDefault()} onClick={() => { setAttached({ text: sel.text, pageNo: sel.pageNo, blockId: sel.blockId }); setSel(null); setPanel('tutor'); window.setTimeout(() => document.getElementById('bk-q')?.focus(), 50) }}>Ask</Button>
+            <Button variant="primary" onMouseDown={(e) => e.preventDefault()} onClick={() => { setAttached({ text: sel.text, pageNo: sel.pageNo, blockId: sel.blockId }); setSel(null); setPanel('tutor'); window.setTimeout(() => document.getElementById('msg-dock')?.focus(), 50) }}>Ask</Button>
             <Button onMouseDown={(e) => e.preventDefault()} onClick={() => void annotate('highlight', sel.pageNo, sel.blockId, sel.text)}>Highlight</Button>
             <Button onMouseDown={(e) => e.preventDefault()} onClick={() => { const note = window.prompt('Your note'); if (note) void annotate('note', sel.pageNo, sel.blockId, sel.text, note) }}>Note</Button>
           </div>
@@ -289,9 +295,10 @@ function BookDesk({ initial }: { initial: BookView }) {
             <button key={p} role="tab" aria-selected={panel === p} onClick={() => setPanel(p)} className={`min-h-11 flex-1 text-sm font-semibold capitalize ${panel === p ? 'border-b-2 border-accent text-accent' : 'text-muted'}`}>{p === 'notes' ? 'Notebook' : p}</button>
           ))}
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto p-3" role="tabpanel">
+        <div className={`min-h-0 flex-1 ${panel === 'tutor' ? 'flex flex-col' : 'overflow-y-auto p-3'}`} role="tabpanel">
           {panel === 'tutor' ? (
-            <TutorPanel msgs={msgs} busy={act.busy} error={act.error} onResume={() => void resume()} onAsk={(q) => void ask(q, null, 'question')} pageNo={cur} />
+            <UniversalChat variant="dock" book={{ bookId: book.id, courseId: book.courseId, pageNo: attached?.pageNo ?? cur, blockId: attached?.blockId ?? null, selection: attached?.text ?? null,
+              onClearSelection: () => setAttached(null), onAnswer, onResume: () => void resume(), notice }} />
           ) : panel === 'notes' ? (
             <NotebookPanel bookId={book.id} nb={nb} onSaved={setNb} />
           ) : panel === 'contents' ? (
@@ -312,24 +319,6 @@ function BookDesk({ initial }: { initial: BookView }) {
             <SearchPanel pages={pages} onGo={(p) => { show(p); if (p.blockId) { setFlash(p.blockId); window.setTimeout(() => setFlash(null), 1600) } }} />
           )}
         </div>
-        {panel === 'tutor' ? (
-          <form className="grid gap-2 border-t border-line p-3" onSubmit={(e) => { e.preventDefault(); void ask(question, attached, source); setSource('question') }}>
-            {attached ? (
-              <div className="flex items-start gap-2 rounded-lg bg-surface-2 p-2 text-xs">
-                <span className="line-clamp-3 flex-1">“{attached.text}” <span className="text-muted">(p. {attached.pageNo})</span></span>
-                <button type="button" aria-label="Remove selection" onClick={() => setAttached(null)}>✕</button>
-              </div>
-            ) : null}
-            <div className="flex items-end gap-2">
-              <label htmlFor="bk-q" className="sr-only">Ask the tutor</label>
-              <textarea id="bk-q" rows={2} value={question} onChange={(e) => { setQuestion(e.target.value); if (playing) pause() }} maxLength={1500}
-                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void ask(question || (attached ? 'Explain this' : ''), attached, source); setSource('question') } }}
-                placeholder={attached ? 'What about it? (e.g. explain simply, give an example)' : `Ask about page ${cur}…`} className={`${inputCls} flex-1 resize-none`} />
-              <MicButton courseId={book.courseId} language={book.language} disabled={act.busy} onStart={pause} onText={(t) => { setSource('voice'); setQuestion((d) => (d.trim() ? `${d.trim()} ${t}` : t)) }} />
-              <Button type="submit" variant="primary" busy={act.busy} disabled={!question.trim() && !attached}>Ask</Button>
-            </div>
-          </form>
-        ) : null}
       </aside>
     </div>
     </>
@@ -393,7 +382,8 @@ function BlockBody({ b, quotes, courseId, bookId, onGoto }: { b: Block; quotes: 
   }
 }
 
-function BookPage({ page, section, courseId, bookId, lecture, flash, ann, bookmarked, onBookmark, onAskBlock, onGoto }: {
+function BookPage({ page, section, courseId, bookId, lecture, flash, ann, bookmarked, onBookmark, onAskBlock, onGoto, practice }: {
+  practice: string | null
   page: Page; section: string; courseId: string; bookId: string; lecture: Position; flash: string | null; ann: Annotation[]
   bookmarked: boolean; onBookmark: () => void; onAskBlock: (b: Block) => void; onGoto: (p: Position) => void
 }) {
@@ -404,7 +394,7 @@ function BookPage({ page, section, courseId, bookId, lecture, flash, ann, bookma
       {page.blocks.map((b) => {
         const quotes = ann.filter((a) => a.blockId === b.id && a.quote && a.kind !== 'bookmark').map((a) => a.quote!)
         return (
-          <section key={b.id} id={`blk-${b.id}`} data-block={b.id} className={`book-block group ${lecture.blockId === b.id ? 'is-lecture' : ''} ${flash === b.id ? 'flash' : ''}`}>
+          <section key={b.id} id={`blk-${b.id}`} data-block={b.id} data-type={b.type} className={`book-block group ${lecture.blockId === b.id ? 'is-lecture' : ''} ${flash === b.id ? 'flash' : ''}`}>
             <BlockBody b={b} quotes={quotes} courseId={courseId} bookId={bookId} onGoto={onGoto} />
             {b.type !== 'heading' ? (
               <div className="mt-1 flex flex-wrap items-center gap-2">
@@ -416,6 +406,13 @@ function BookPage({ page, section, courseId, bookId, lecture, flash, ann, bookma
           </section>
         )
       })}
+      {practice ? (
+        <aside className="book-practice">
+          <p className="font-serif text-lg">End of this part</p>
+          <p className="text-sm" style={{ color: 'var(--paper-muted)' }}>When you feel ready, try a few questions — with step-by-step hints or the full solution, your choice.</p>
+          <Link to={practice} className="uc-action mt-2 inline-flex">Practise this topic <span aria-hidden>→</span></Link>
+        </aside>
+      ) : null}
       <p className="absolute bottom-3 left-0 right-0 text-center text-xs tabular-nums" style={{ color: 'var(--paper-muted)' }}>{page.pageNo}</p>
     </article>
   )
@@ -469,28 +466,6 @@ function ActivityBlock({ b, bookId, onGoto }: { b: Block; bookId: string; course
         </div>
       ) : null}
     </div>
-  )
-}
-
-function TutorPanel({ msgs, busy, error, onResume, onAsk, pageNo }: { msgs: Msg[]; busy: boolean; error: unknown; onResume: () => void; onAsk: (q: string) => void; pageNo: number }) {
-  const end = useRef<HTMLDivElement>(null)
-  useEffect(() => { end.current?.scrollIntoView({ block: 'end' }) }, [msgs.length])
-  if (!msgs.length) return <p className="text-sm text-muted">Select any text in the book and press <b>Ask</b>, or ask about page {pageNo} below. You can always come back to where the lesson stopped.</p>
-  return (
-    <ol className="grid gap-3" aria-live="polite">
-      {msgs.map((m) => (
-        <li key={m.id} className={m.role === 'student' ? 'justify-self-end max-w-[90%] rounded-2xl rounded-br-sm bg-navy px-3 py-2 text-sm text-on-navy whitespace-pre-wrap' : 'rounded-2xl rounded-bl-sm bg-surface-2 px-3 py-2 text-sm'}>
-          {m.text ? <p>{m.text}</p> : null}
-          {m.blocks?.map((b) => <div key={b.id} className="mt-1">{b.term ? <p><b>{b.term}</b> — {b.text}</p> : <p>{b.text}</p>}{b.items ? <ul className="list-disc pl-5">{b.items.map((x, i) => <li key={i}>{x}</li>)}</ul> : null}<span className="book-chip mt-1 inline-block">{b.label === 'source' && b.cites[0] ? `From ${b.cites[0].filename}, p. ${b.cites[0].page}` : 'AI explanation'}</span></div>)}
-          {m.followUp ? <p className="mt-2 italic">{m.followUp}</p> : null}
-          {m.kind === 'page' ? <div className="mt-2 flex flex-wrap gap-2"><Button onClick={() => onAsk(`I have a doubt about page ${pageNo}`)}>I have a doubt here</Button>{m.resumeTo ? <Button onClick={onResume}>Back to the lesson (p. {m.resumeTo.pageNo})</Button> : null}</div> : null}
-          {m.kind === 'answer' && m.resumeTo ? <div className="mt-2"><Button onClick={onResume}>Back to the lesson (p. {m.resumeTo.pageNo})</Button></div> : null}
-        </li>
-      ))}
-      {busy ? <li role="status" className="text-sm text-muted">Thinking…</li> : null}
-      {error ? <li><ErrorNote error={error} /></li> : null}
-      <div ref={end} />
-    </ol>
   )
 }
 
@@ -550,3 +525,6 @@ function SearchPanel({ pages, onGo }: { pages: Page[]; onGo: (p: Position) => vo
     </div>
   )
 }
+
+/** The book teaches; questions live in the practice space (formative checks are not shown inside the book). */
+function lessonOnly(ps: Page[]): Page[] { return ps.map((p) => ({ ...p, blocks: p.blocks.filter((b) => b.type !== 'activity') })) }

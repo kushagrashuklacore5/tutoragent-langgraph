@@ -158,3 +158,22 @@ test('voice: speakable text, and voice choice by tutor language', async () => {
   assert.equal(pickVoice([{ lang: 'en_GB', name: 'UK' }], 'en')!.name, 'UK')
   assert.equal(pickVoice([{ lang: 'fr-FR', name: 'FR' }], 'hi'), null)
 })
+
+import { chunks, pickVoice, rankVoices } from '../src/lib/voice.ts'
+test('voice: Indian neural voices first, never an arbitrary default; the student choice wins', () => {
+  const vs = [
+    { name: 'Microsoft David - English (United States)', lang: 'en-US', localService: true },
+    { name: 'Google UK English Female', lang: 'en-GB' },
+    { name: 'Microsoft Heera - English (India)', lang: 'en-IN', localService: true },
+    { name: 'Microsoft Neerja Online (Natural) - English (India)', lang: 'en-IN' },
+    { name: 'Microsoft Swara Online (Natural) - Hindi (India)', lang: 'hi-IN' },
+    { name: 'Google हिन्दी', lang: 'hi-IN' },
+  ]
+  assert.equal(pickVoice(vs, 'en')!.name, 'Microsoft Neerja Online (Natural) - English (India)')
+  assert.equal(pickVoice(vs, 'hi')!.name, 'Microsoft Swara Online (Natural) - Hindi (India)')
+  assert.equal(pickVoice(vs, 'hinglish')!.lang, 'en-IN')
+  assert.equal(pickVoice(vs, 'en', 'Microsoft Heera - English (India)')!.name, 'Microsoft Heera - English (India)')
+  assert.ok(rankVoices(vs, 'hi').every((v) => v.lang === 'hi-IN'), 'no English voice reads Hindi')
+  assert.equal(pickVoice([{ name: 'x', lang: 'fr-FR' }], 'hi'), null)
+  assert.ok(chunks('A. '.repeat(10) + 'b'.repeat(500)).every((c) => c.length <= 220))
+})

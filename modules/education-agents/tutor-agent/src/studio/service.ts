@@ -15,6 +15,7 @@ import { addDoubt, LineReader, mergeSectionNotes, pageText, paginate, publicBloc
 import { checkActivity, verifyMcqKey } from './activity.ts'
 import { searchImages } from './images.ts'
 import { ASK_TASK, buildAskPrompt, buildFeedbackPrompt, buildOcrPrompt, buildOutlinePrompt, buildSectionPrompt, FEEDBACK_TASK, OCR_TASK, OUTLINE_TASK, SECTION_TASK, STUDIO_PROMPT_VERSION } from './prompts.ts'
+import { QUESTION_SET_JOB } from '../agent/job-names.ts'
 import { advance, ask as askState, initialStudio, pagePrompt, resume as resumeState, viewPage, type BookIndex, type StudioState, type StudyMode } from './session.ts'
 
 type Lang = 'en' | 'hi' | 'hinglish'
@@ -191,7 +192,7 @@ export function studioService(d: ModuleDeps) {
       yield { type: 'sources', count: sources.length, files: [...new Set(sources.map((x) => x.filename))] }
       const profile = await tx(p, (t) => loadProfile(d, p, t)).catch(() => null)
       const covered = b.outline.filter((x) => x.status === 'ready').map((x) => x.title)
-      const messages = buildSectionPrompt({ language: b.language, bookTitle: b.title, sectionTitle: s.title, mode: b.mode, sources, level: profile?.level ?? profile?.grade, style: profile?.learningStyle, objective: profile?.objective, covered, allowFigure: true })
+      const messages = buildSectionPrompt({ language: b.language, bookTitle: b.title, sectionTitle: s.title, mode: b.mode, sources, level: [profile?.grade ? `Class ${profile.grade}` : profile?.level, profile?.curriculum, profile?.depth ? `${profile.depth} depth` : null].filter(Boolean).join(', ') || undefined, style: profile?.learningStyle, objective: profile?.objective, covered, allowFigure: true })
       const reader = new LineReader()
       const blocks: Block[] = []
       let figures = 0
@@ -259,6 +260,8 @@ export function studioService(d: ModuleDeps) {
         await saveState(t, cur, state, outline)
         const nb = await latestNotebook(p, t, id)
         await writeNotebook(p, t, id, nb.version + 1, mergeSectionNotes(nb.doc, sectionId, s.title, blocks), 'ai')
+        // practice for this topic is made ONCE, from what was just taught (and the student's material)
+        if (s.conceptId) await d.enqueue(t, QUESTION_SET_JOB, { userId: p.userId, courseId: cur.course_id, conceptIds: [s.conceptId], documentId: cur.document_id }, { idempotencyKey: `qs:book:${id}:${sectionId}` }).catch(() => {})
         await event(t, id, 'section_generated', first, { sectionId, blocks: blocks.length, sourceBlocks: blocks.filter((x) => x.label === 'source').length, figures: blocks.filter((x) => x.type === 'figure').length, checks: blocks.filter((x) => x.type === 'activity').length, dropped, pages: laid.length })
         return { laid, notebookVersion: nb.version + 1 }
       })
@@ -441,7 +444,27 @@ export function studioService(d: ModuleDeps) {
     return { documentId: doc.id, status: doc.status, title: j.title ?? null, characters: j.text.length }
   }
 
-  return { create, view, list, generate, onEvent, ask, resume, answer, saveNotebook, notebookVersions, annotate, unannotate, remove, ocr }
+  /** What the tutor TAUGHT this student on a topic: the book sections about it (decrypted blocks, with pages). */
+  async function taught(p: Principal, courseId: string, conceptId: string, conceptName: string): Promise<{ text: string; refs: { bookId: string; bookTitle: string; pageNo: number; text: string }[] }> {
+    const words = (x: string) => x.toLowerCase().replace(/[^a-z0-9\u0900-\u097f]+/g, ' ').split(' ').filter((w) => w.length > 3)
+    const want = new Set(words(conceptName))
+    return tx(p, async (t) => {
+      const books = (await t.query<{ id: string; title: string; outline: Section[] }>(`select id, title, outline from education_tutor.studio_books where course_id = $1 order by updated_at desc limit 10`, [courseId])).rows
+      const refs: { bookId: string; bookTitle: string; pageNo: number; text: string }[] = []
+      for (const b of books) {
+        const secs = b.outline.filter((s) => s.status === 'ready' && (s.conceptId === conceptId || words(s.title).some((w) => want.has(w)))).map((s) => s.id)
+        if (!secs.length) continue
+        for (const pg of (await pages(p, t, b.id)).filter((x) => secs.includes(x.sectionId))) {
+          const text = pg.blocks.filter((x) => ['text', 'definition', 'example', 'formula', 'tip', 'exam', 'summary', 'list', 'excerpt'].includes(x.type))
+            .map((x) => `${x.term ? `${x.term}: ` : ''}${x.text}${x.items?.length ? ` ${x.items.join('; ')}` : ''}`).join('\n')
+          if (text.trim()) refs.push({ bookId: b.id, bookTitle: b.title, pageNo: pg.pageNo, text })
+        }
+      }
+      return { text: refs.map((r) => `[lesson page ${r.pageNo}] ${r.text}`).join('\n---\n').slice(0, 7000), refs }
+    })
+  }
+
+  return { create, view, list, generate, onEvent, ask, resume, answer, saveNotebook, notebookVersions, annotate, unannotate, remove, ocr, taught }
 }
 
 function clampRange(a: unknown, b: unknown, max: number): [number, number] | null {

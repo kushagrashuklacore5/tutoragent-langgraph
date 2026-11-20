@@ -62,7 +62,7 @@ const exporter: OtlpExporter | undefined = otlp ? createOtlpExporter({ ...otlp, 
 exporter?.start()
 
 const app = createApp({
-  env: config.env, db, system, keyManager, mail: createMailTransport(mailConfig, { system }),
+  env: config.env, db, system, keyManager, mail: createMailTransport(mailConfig, { system }), devSignInLinks: mailConfig.kind === 'dev_outbox' && config.env !== 'production',
   publicBaseUrl: config.publicBaseUrl, allowedOrigins: config.allowedOrigins, modules: MODULES, metricsToken: config.metricsToken,
   documents: documents ? { ...documents, embeddingDimensions: Number(process.env.EMBEDDING_DIMENSIONS ?? 1024) } : undefined,
   math: process.env.MATH_SOLVER_URL ? createMathClient({ baseUrl: process.env.MATH_SOLVER_URL, allowRemote: prod }) : undefined,
