@@ -1,3 +1,4 @@
+import type { BaseCheckpointSaver } from '@langchain/langgraph-checkpoint'
 import { AppError, badRequest, forbidden, unauthorized, type Environment } from '@platform/core'
 import { renderPrometheus } from '@platform/observability'
 import type { Database } from '@platform/tenancy-db'
@@ -36,6 +37,8 @@ export interface AppOptions {
   documents?: { store: ObjectStore; scanner: Scanner; embeddingDimensions?: number; ranking?: Partial<RankingConfig> }
   /** deterministic maths checker (math-solver service); omitted = numeric claims stay unverified */
   math?: MathChecker
+  /** LangGraph checkpoint store for agent workflows (PostgreSQL in every real deployment) */
+  checkpointer?: BaseCheckpointSaver
 }
 
 const COOKIE = 'ebs'
@@ -48,7 +51,7 @@ export function createApp(o: AppOptions) {
   // documents + retrieval are enabled only when the host provides an object store and a malware scanner
   const documents = o.documents ? createDocumentService({ db: o.db, system: o.system, store: o.documents.store, scanner: o.documents.scanner, enqueue: (tx, type, payload, opts) => enqueue(tx, type, payload, opts) }) : undefined
   const retrieval = o.documents ? createRetrieval({ db: o.db, system: o.system, gateway: () => gateway, ranking: o.documents.ranking }) : undefined
-  const platform: Platform = buildPlatform(o.modules, { db: o.db, gateway: () => gateway, documents, retrieval, embeddingDimensions: o.documents?.embeddingDimensions, math: o.math,
+  const platform: Platform = buildPlatform(o.modules, { db: o.db, gateway: () => gateway, documents, retrieval, embeddingDimensions: o.documents?.embeddingDimensions, math: o.math, checkpointer: o.checkpointer,
     crypto: createFieldCrypto({ system: o.system, keyManager: o.keyManager }) }) // field encryption at rest (packages/field-crypto)
   gateway = createGateway({ system: o.system, keyManager: o.keyManager, environment: o.env, adapters: o.adapters ?? ADAPTERS, tasks: platform.tasks })
   const identity = createIdentityService({ system: o.system, db: o.db, mail: o.mail, publicBaseUrl: o.publicBaseUrl })

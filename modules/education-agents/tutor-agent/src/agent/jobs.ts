@@ -61,7 +61,10 @@ export function agentJobs(d: ModuleDeps) {
       const p = principalOf(ctx)
       const now = new Date()
       // retention: conversations without activity for RETENTION_DAYS are deleted (profile and plan are kept)
-      const purged = (await t.query(`delete from education_tutor.agent_conversations where user_id = platform.current_user_id() and updated_at < now() - make_interval(days => $1)`, [RETENTION_DAYS])).rowCount
+      const old = (await t.query<{ id: string }>(`delete from education_tutor.agent_conversations where user_id = platform.current_user_id() and updated_at < now() - make_interval(days => $1) returning id`, [RETENTION_DAYS])).rows
+      // their LangGraph threads (checkpoints) go with them
+      for (const r of old) await d.checkpointer?.deleteThread(`${p.tenantId}:${r.id}`)
+      const purged = old.length
       const profile = await loadProfile(d, p, t)
       if (!profile?.courseId) return { skipped: 'no companion profile', purged }
       const courseId = profile.courseId

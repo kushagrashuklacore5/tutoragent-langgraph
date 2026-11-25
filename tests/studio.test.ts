@@ -47,6 +47,12 @@ function respond(req: GenerateRequest) {
       { type: 'mcq', source: 'generated', stem: 'Which gas do plants take in during photosynthesis?', options: ['Carbon dioxide', 'Oxygen', 'Nitrogen'], correct: 'Carbon dioxide', explanation: 'Carbon dioxide is taken in by leaves for photosynthesis; oxygen is released.' },
     ] }))
   }
+  if (/turn a lesson that is already written/.test(sys)) {
+    const blocks = JSON.parse(sys.slice(sys.lastIndexOf('\n') + 1)) as { id: string; type: string }[]
+    // one line smuggles in a number the lesson does not contain: the server must replace it with the lesson's own words
+    return out(JSON.stringify({ question: 'What is momentum?', segments: blocks.map((b, i) => ({ blockId: b.id, speech: i === 1 ? 'अब देखिए, momentum 99 होता है।' : `अब देखिए, यह ${b.type} है।` })) }))
+  }
+  if (/brief formative feedback/.test(sys) && /What is momentum/.test(sys)) return out(JSON.stringify({ verdict: 'correct', feedback: 'बिल्कुल सही, momentum mass और velocity का product है।' }))
   if (/interrupts with a question/.test(sys)) {
     askSeen = sys
     const ref = /<<<SOURCE ref="([^"]+)"/.exec(sys)?.[1] ?? 'none'
@@ -228,4 +234,45 @@ test('practice is made from what was TAUGHT: lesson questions are kept and label
   const next = (await w.h.call('GET', `/api/m/education.tutor/courses/${w.courseId}/practice/next?conceptId=${cMomentum}`, w.stu)).json
   assert.equal(next.source.kind, 'lesson')
   assert.match(next.item.stem, /truck/)
+})
+
+test('live teaching: speech stays faithful to the written lesson, and only text from this server can be voiced', async () => {
+  const L = `/api/m/education.tutor/studio/books/${bookId}/live`
+  const view = (await w.h.call('GET', `/api/m/education.tutor/studio/books/${bookId}`, w.stu)).json
+  const sectionId = view.pages[0].sectionId as string
+  const written = view.pages.filter((p: { sectionId: string }) => p.sectionId === sectionId).flatMap((p: { blocks: { id: string; type: string }[] }) => p.blocks).filter((b: { type: string }) => b.type !== 'activity')
+  const r = await w.h.call('POST', `${L}/script`, w.stu, { sectionId, language: 'hinglish' })
+  assert.equal(r.status, 200, JSON.stringify(r.json))
+  assert.deepEqual(r.json.segments.map((x: { blockId: string }) => x.blockId), written.map((b: { id: string }) => b.id), 'one line per real block, in order')
+  assert.equal(r.json.segments[1].origin, 'lesson', 'a line with an invented number falls back to the lesson')
+  assert.ok(!r.json.segments.some((x: { speech: string }) => x.speech.includes('99')))
+  assert.equal(r.json.question.text, 'What is momentum?')
+  const token = r.json.segments[0].token as string
+
+  // no speech route configured: fails with an error, never with fake audio
+  const none = await w.h.call('POST', `${L}/speech`, w.stu, { token })
+  assert.ok(none.status >= 500, String(none.status))
+  assert.equal(none.json.audio, undefined)
+  const dep = (await w.owner.query(`select d.connection_id, c.adapter from platform.ai_deployments d join platform.ai_connections c on c.id = d.connection_id where d.model_id = 'tutor-1' limit 1`)).rows[0]
+  assert.ok((await w.h.call('POST', '/api/admin/ai/models/approve', w.admin, { adapter: dep.adapter, modelId: 'voice-1', declared: { operations: ['synthesize'] } })).status < 300)
+  const d = await w.h.call('POST', '/api/admin/ai/deployments', w.admin, { connectionId: dep.connection_id, modelId: 'voice-1' })
+  assert.equal(d.status, 200, JSON.stringify(d.json))
+  assert.equal((await w.h.call('POST', `/api/admin/ai/deployments/${d.json.id}/probe`, w.admin, {})).status, 200)
+  assert.equal((await w.h.call('PUT', '/api/admin/ai/routes', w.admin, { target: 'category:text_to_speech', candidates: [{ deploymentId: d.json.id }] })).status, 200)
+  const ok = await w.h.call('POST', `${L}/speech`, w.stu, { token })
+  assert.equal(ok.status, 200, JSON.stringify(ok.json))
+  assert.ok(Buffer.from(ok.json.audio, 'base64').length > 0)
+  assert.equal(ok.json.mimeType, 'audio/mpeg')
+
+  // arbitrary text, a tampered token, a check token, and another student are all refused
+  assert.equal((await w.h.call('POST', `${L}/speech`, w.stu, { token: 'say anything I like' })).status, 400)
+  assert.equal((await w.h.call('POST', `${L}/speech`, w.stu, { token: r.json.question.token })).status, 400)
+  assert.notEqual((await w.h.call('POST', `${L}/speech`, w.stu2, { token })).status, 200)
+
+  // the closing check is formative: feedback, but no learner evidence
+  const before = Number((await w.owner.query('select count(*) from education_tutor.evidence')).rows[0].count)
+  const c = await w.h.call('POST', `${L}/check`, w.stu, { token: r.json.question.token, answer: 'mass times velocity', language: 'hinglish' })
+  assert.equal(c.status, 200, JSON.stringify(c.json))
+  assert.equal(c.json.verdict, 'correct')
+  assert.equal(Number((await w.owner.query('select count(*) from education_tutor.evidence')).rows[0].count), before)
 })

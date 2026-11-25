@@ -4,7 +4,7 @@ import { currentTrace, logger, withSpan } from '@platform/observability'
 import {
   GatewayError, checkBaseUrl, createHttpClient,
   type Capabilities, type DiscoveredModel, type EmbedResult, type GenerateRequest, type GenerateResult, type Message,
-  type ProviderAdapter, type ResolvedConnection, type StreamEvent, type ToolCall, type ToolChoice, type ToolDefinition, type TranscribeRequest, type TranscribeResult, type Usage,
+  type ProviderAdapter, type ResolvedConnection, type StreamEvent, type ToolCall, type ToolChoice, type ToolDefinition, type SynthesizeRequest, type SynthesizeResult, type TranscribeRequest, type TranscribeResult, type Usage,
 } from '@platform/ai-adapter-kit'
 import type { SystemDatabase } from '@platform/tenancy-db/system'
 import { recordSystemAudit } from '@platform/audit'
@@ -159,11 +159,11 @@ export function createGateway(o: GatewayOptions) {
     breaker.set(id, b)
   }
 
-  async function prepare(taskId: string, ctx: CallContext, op: 'generate' | 'stream' | 'embed' | 'transcribe') {
+  async function prepare(taskId: string, ctx: CallContext, op: 'generate' | 'stream' | 'embed' | 'transcribe' | 'synthesize') {
     const task = tasks.get(taskId)
     if (!task) throw new GatewayError('unknown_task', `unknown AI task ${taskId}`)
     const declaredOp = task.requires.operation
-    const special = (x: string) => x === 'embed' || x === 'transcribe'
+    const special = (x: string) => x === 'embed' || x === 'transcribe' || x === 'synthesize'
     if (special(op) || special(declaredOp) ? op !== declaredOp : false) throw new GatewayError('invalid_request', `task ${taskId} is declared for ${declaredOp}`)
     if ((await budgetExceeded(o.system, ctx.tenantId, task.owner)).exceeded) throw new GatewayError('budget_exceeded', 'AI budget for this period is exhausted')
     const policy = await store.tenantPolicy(ctx.tenantId)
@@ -622,7 +622,65 @@ export function createGateway(o: GatewayOptions) {
     })
   }
 
-  return { tasks, run, stream, embed, transcribe, admin, store, currentRoute }
+  /** Text-to-speech with routing, retries, eligible-only fallback and metering (characters are metered as input tokens). */
+  async function synthesize(taskId: string, req: SynthesizeRequest, ctx: CallContext): Promise<SynthesizeResult & { route: RouteInfo }> {
+    return withSpan(`ai.synthesize ${taskId}`, async () => {
+      const { task, candidates } = await prepare(taskId, ctx, 'synthesize')
+      let attempt = 0
+      let lastErr: unknown
+      for (const [i, c] of candidates.entries()) {
+        const adapter = adapterFor(c.connection.adapter)
+        if (!adapter.synthesize || breakerOpen(c.deployment.id)) continue
+        const conn = await resolveConnection(c.connection)
+        for (let r = 0; r <= retries; r++) {
+          attempt++
+          const start = performance.now()
+          try {
+            const out = await adapter.synthesize(conn, c.deployment.model_id, req, ctx.signal)
+            breakerRecord(c.deployment.id, true)
+            await meter(task, ctx, c, attempt, i > 0, start, { status: 'ok', usage: out.usage })
+            return { ...out, route: { deploymentId: c.deployment.id, connectionId: c.connection.id, adapter: c.connection.adapter, modelId: c.deployment.model_id, attempt, fallback: i > 0 } }
+          } catch (e) {
+            const err = e instanceof GatewayError ? e : new GatewayError('provider_error', (e as Error).message)
+            lastErr = err
+            await meter(task, ctx, c, attempt, i > 0, start, { status: 'error', errorKind: err.kind })
+            if ((err.retryable || err.fallbackEligible) && err.kind !== 'rate_limited') breakerRecord(c.deployment.id, false)
+            const wait = retryWait(err, r + 1)
+            if (err.retryable && r < retries && wait !== null) { await new Promise((res) => setTimeout(res, wait)); continue }
+            if (!err.fallbackEligible) throw err
+            break
+          }
+        }
+      }
+      throw lastErr ?? new GatewayError('unsupported_capability', `no deployment for ${taskId} supports speech synthesis`)
+    })
+  }
+
+  /**
+   * The same routing and data policy as synthesize, delivered as audio chunks. Not retried here: the caller falls back to
+   * synthesize if this fails. Characters are metered once, also when the listener leaves early (they were still generated).
+   */
+  async function* synthesizeStream(taskId: string, req: SynthesizeRequest, ctx: CallContext): AsyncIterable<Buffer> {
+    const { task, candidates } = await prepare(taskId, ctx, 'synthesize')
+    const c = candidates.find((x) => !!adapterFor(x.connection.adapter).synthesizeStream && !breakerOpen(x.deployment.id))
+    if (!c) throw new GatewayError('unsupported_capability', `no deployment for ${taskId} supports streaming speech`)
+    const conn = await resolveConnection(c.connection)
+    const start = performance.now()
+    let failed = false
+    try {
+      for await (const chunk of adapterFor(c.connection.adapter).synthesizeStream!(conn, c.deployment.model_id, req, ctx.signal)) yield chunk
+      breakerRecord(c.deployment.id, true)
+    } catch (e) {
+      failed = true
+      const err = e instanceof GatewayError ? e : new GatewayError('provider_error', (e as Error).message)
+      await meter(task, ctx, c, 1, false, start, { status: 'error', errorKind: err.kind })
+      throw err
+    } finally {
+      if (!failed) await meter(task, ctx, c, 1, false, start, { status: 'ok', usage: { inputTokens: req.text.length, outputTokens: 0, cachedInputTokens: null, reasoningTokens: null } })
+    }
+  }
+
+  return { tasks, run, stream, embed, transcribe, synthesize, synthesizeStream, admin, store, currentRoute }
 }
 
 export type Gateway = ReturnType<typeof createGateway>

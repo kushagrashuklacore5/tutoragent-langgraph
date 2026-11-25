@@ -2,9 +2,9 @@
 import { badRequest } from '@platform/core'
 import type { ModuleDeps, RouteDef } from '@platform/contracts'
 import { obj, P, str, uuid } from '../common.ts'
-import { companion } from './orchestrator.ts'
+import { companion } from './graph/runner.ts'
 import { recommend, type Signal } from '../domain/insights.ts'
-import { withStatus, type StatusEvent } from './status.ts'
+import type { StatusEvent } from './status.ts'
 import { courseScope, MAX_UPLOAD_BYTES } from '../materials.ts'
 import { createConversation, initialState, loadProfile } from './store.ts'
 
@@ -25,7 +25,7 @@ export function agentRoutes(d: ModuleDeps): RouteDef[] {
     /** the same turn, streamed: status events while the agent works ("Thinking…"), then the result */
     { method: 'POST', path: '/agent/messages/stream', permission: P.study, handler: async ({ principal, body }) => {
       const input = turnInput(obj(body))
-      return { stream: streamTurn((emit) => withStatus(emit, () => c.turn(principal, input))) }
+      return { stream: streamTurn((emit) => c.turn(principal, input, emit)) }
     } },
     /** upload own notes before any course exists: they go to a new personal course that the document will name */
     { method: 'POST', path: '/agent/material', permission: P.study, rawBody: { maxBytes: MAX_UPLOAD_BYTES }, handler: async ({ principal, query, body }) => {
@@ -43,6 +43,7 @@ export function agentRoutes(d: ModuleDeps): RouteDef[] {
         context: bookContext(b.context),
         documentId: typeof b.documentId === 'string' ? uuid(b.documentId, 'documentId') : undefined,
         documentTitle: typeof b.documentTitle === 'string' ? b.documentTitle.replace(/\.[a-z0-9]+$/i, '').replace(/[-_]+/g, ' ').trim().slice(0, 160) || undefined : undefined,
+        intake: intakeInput(b.intake),
       })
     } },
     { method: 'POST', path: '/agent/proposals/:proposalId/approve', permission: P.study, handler: async ({ principal, params, body }) =>
@@ -73,6 +74,9 @@ export function agentRoutes(d: ModuleDeps): RouteDef[] {
       ({ unread: (await t.query<{ n: number }>(`select count(*)::int as n from education_tutor.agent_messages where user_id = platform.current_user_id() and kind = 'nudge' and seen_at is null`)).rows[0]!.n })) },
     /** "forget me": delete the companion's memory of this student (profile, conversations, traces, scheduled tasks) */
     { method: 'DELETE', path: '/agent/memory', permission: P.study, handler: async ({ principal }) => d.inTenant(principal, async (t) => {
+      // the graph threads (checkpoints) of the student's own conversations go too (ids read under RLS)
+      const own = (await t.query<{ id: string }>('select id from education_tutor.agent_conversations where user_id = platform.current_user_id()')).rows.map((r) => r.id)
+      await c.forgetThreads(principal, own)
       await t.query('delete from education_tutor.agent_tasks where user_id = platform.current_user_id()')
       await t.query('delete from education_tutor.agent_tool_calls where user_id = platform.current_user_id()')
       await t.query('delete from education_tutor.agent_conversations where user_id = platform.current_user_id()')
@@ -97,7 +101,24 @@ function turnInput(b: Record<string, unknown>) {
     context: bookContext(b.context),
     documentId: typeof b.documentId === 'string' ? uuid(b.documentId, 'documentId') : undefined,
     documentTitle: typeof b.documentTitle === 'string' ? b.documentTitle.replace(/\.[a-z0-9]+$/i, '').replace(/[-_]+/g, ' ').trim().slice(0, 160) || undefined : undefined,
+    intake: intakeInput(b.intake),
   }
+}
+
+/** a submitted onboarding intake: its id, one answer (option value or the student's own words) per slot, and "review first" */
+function intakeInput(v: unknown): { id: string; answers: Record<string, string>; review: boolean } | undefined {
+  if (v === undefined || v === null) return undefined
+  if (typeof v !== 'object' || Array.isArray(v)) throw badRequest('invalid_intake', 'intake must be an object')
+  const x = v as Record<string, unknown>
+  const id = uuid(x.id, 'intake.id')
+  const raw = x.answers ?? {}
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw) || Object.keys(raw).length > 12) throw badRequest('invalid_intake', 'intake.answers must be an object of answers')
+  const answers: Record<string, string> = {}
+  for (const [k, a] of Object.entries(raw as Record<string, unknown>)) {
+    if (!/^[a-zA-Z]{2,20}$/.test(k) || (a !== null && typeof a !== 'string')) throw badRequest('invalid_intake', 'each intake answer must be text')
+    if (typeof a === 'string' && a.trim()) answers[k] = a.trim().slice(0, 160)
+  }
+  return { id, answers, review: x.review === true }
 }
 
 /** events of a running turn as an async stream: status lines, then {type:'done', result} (or an error event) */

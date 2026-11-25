@@ -10,6 +10,8 @@ export interface RoadmapInput {
   /** exam/target date, or null (no fixed date: a 4-week horizon is planned) */
   examAt: Date | null
   dailyMinutes: number
+  /** total study time for the goal: the schedule ends when it is used up */
+  totalMinutes?: number | null
   studyDaysPerWeek?: number
   concepts: PlanConcept[]
   reviewMinutesPerDay?: number
@@ -18,7 +20,7 @@ export interface RoadmapInput {
 }
 export interface Milestone { seq: number; title: string; conceptIds: string[]; conceptNames: string[]; due: string }
 export interface Roadmap {
-  horizon: { start: string; end: string; days: number; fixedDate: boolean }
+  horizon: { start: string; end: string; days: number; fixedDate: boolean; totalMinutes: number | null }
   dailyMinutes: number
   /** average per calendar day the planner uses (daily minutes × study days / 7) */
   effectiveDailyMinutes: number
@@ -48,15 +50,20 @@ export const conceptMinutes = (c: PlanConcept) => { const learn = Math.max(10, M
 export function buildRoadmap(input: RoadmapInput): Roadmap {
   const start = utcDay(input.today)
   const fixedDate = !!input.examAt
-  const end = input.examAt ? new Date(utcDay(input.examAt).getTime() - DAY) : new Date(start.getTime() + (NO_DATE_HORIZON_DAYS - 1) * DAY)
-  const days = Math.max(0, Math.round((end.getTime() - start.getTime()) / DAY) + 1)
   const studyDays = Math.min(7, Math.max(1, input.studyDaysPerWeek ?? 7))
-  const effective = Math.max(10, Math.round((input.dailyMinutes * studyDays) / 7))
+  const paced = Math.max(10, Math.round((input.dailyMinutes * studyDays) / 7))
+  const total = input.totalMinutes && input.totalMinutes > 0 ? input.totalMinutes : null
+  const dateEnd = input.examAt ? new Date(utcDay(input.examAt).getTime() - DAY) : new Date(start.getTime() + (NO_DATE_HORIZON_DAYS - 1) * DAY)
+  const dateDays = Math.max(0, Math.round((dateEnd.getTime() - start.getTime()) / DAY) + 1)
+  // a stated total ends the schedule when it is used up (6 h at 2 h/day = 3 days, never a silent 28)
+  const days = total ? Math.min(dateDays, Math.ceil(total / paced)) : dateDays
+  const end = total && days ? new Date(start.getTime() + (days - 1) * DAY) : dateEnd
+  const effective = total && days ? Math.max(10, Math.min(paced, Math.floor(total / days))) : paced
   const plan = buildPlan({ today: start, examAt: new Date(end.getTime() + DAY), dailyMinutes: effective, concepts: input.concepts, reviewMinutesPerDay: input.reviewMinutesPerDay })
   const todo = input.concepts.filter((c) => !c.mastered)
   const review = plan.tasks.filter((t) => t.kind === 'review').reduce((n, t) => n + t.minutes, 0)
   const requiredMinutes = todo.reduce((n, c) => n + conceptMinutes(c), 0) + review
-  const availableMinutes = days * effective
+  const availableMinutes = total ? Math.min(total, days * effective) : days * effective
   const ratio = availableMinutes ? requiredMinutes / availableMinutes : Infinity
   const feasibility: Roadmap['feasibility'] = plan.dropped.length || ratio > 1 ? 'over' : ratio > 0.85 ? 'tight' : 'comfortable'
   const suggestedDailyMinutes = feasibility === 'comfortable' || !days ? null : Math.min(600, Math.ceil(((requiredMinutes / 0.85) / days) * (7 / studyDays) / 5) * 5)
@@ -121,12 +128,13 @@ export function buildRoadmap(input: RoadmapInput): Roadmap {
 
   const rationale = [...plan.rationale]
   if (studyDays < 7) rationale.unshift(`You study ${studyDays} day(s) a week, so ${input.dailyMinutes} min on study days averages ${effective} min a day.`)
-  rationale.unshift(`About ${Math.round(requiredMinutes / 60 * 10) / 10} h of work against ${Math.round(availableMinutes / 60 * 10) / 10} h available${fixedDate ? ' before your date' : ` over the next ${NO_DATE_HORIZON_DAYS} days`}.`)
+  rationale.unshift(`About ${Math.round(requiredMinutes / 60 * 10) / 10} h of work against ${Math.round(availableMinutes / 60 * 10) / 10} h available${fixedDate ? ' before your date' : total ? ` in your ${Math.round(total / 6) / 10} h (${days} day${days === 1 ? '' : 's'} at ${effective} min a day)` : ` over the next ${NO_DATE_HORIZON_DAYS} days`}.`)
+  if (total && plan.dropped.length) rationale.unshift(`Your time covers ${todo.length - plan.dropped.length} of ${todo.length} topics. Add time or pick a section to cover the rest.`)
   if (spaced) rationale.push(`Spare time after the last milestone is used for ${spaced} weekly spaced review(s): short mixed practice from memory, which helps retention more than re-reading.`)
   if (suggestedDailyMinutes) rationale.push(`To fit everything comfortably, about ${suggestedDailyMinutes} min per study day would be needed.`)
 
   return {
-    horizon: { start: ymd(start), end: ymd(end), days, fixedDate }, dailyMinutes: input.dailyMinutes, effectiveDailyMinutes: effective,
+    horizon: { start: ymd(start), end: ymd(end), days, fixedDate, totalMinutes: total }, dailyMinutes: input.dailyMinutes, effectiveDailyMinutes: effective,
     requiredMinutes, availableMinutes, feasibility, suggestedDailyMinutes, milestones, checkpoints, weeks, gaps, notStarted,
     dropped: plan.dropped.map((d) => ({ name: name.get(d.conceptId) ?? d.conceptId, reason: d.reason })), rationale, plan,
   }

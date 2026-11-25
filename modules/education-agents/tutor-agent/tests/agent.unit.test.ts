@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { applyDoubts, mergeProfile, missingRequired, nextSlot, parseSlotAnswer, readyToPlan, validDate } from '../src/agent/profile.ts'
+import { applyDoubts, asksForExplanation, mergeProfile, relatedTo, requestedTopic, topicChange, missingRequired, nextSlot, parseSlotAnswer, readyToPlan, validDate } from '../src/agent/profile.ts'
 import { buildRoadmap } from '../src/agent/roadmap.ts'
 import { decideNudges, prepareSession, type NudgeFacts } from '../src/agent/nudges.ts'
 import { validate } from '../src/agent/schema.ts'
@@ -156,10 +156,63 @@ test('executor: unknown tools, model-forbidden tools, bad args and missing appro
 })
 
 test('follow-up budget counts volunteered answers; replies carry one question', async () => {
-  const { oneQuestion } = await import('../src/agent/orchestrator.ts')
+  const { oneQuestion } = await import('../src/agent/graph/rules.ts')
   const p = { courseId: C, objective: 'exam_prep' as const, topic: 'Limits', material: 'curriculum' as const, materialFor: C, examDate: '2026-12-20', dailyMinutes: 60, confidence: 3, level: 'undergraduate' as const }
   assert.equal(nextSlot(p, ['confidence']), null, 'two optional facts known (one volunteered): no third follow-up')
   assert.ok(readyToPlan(p, ['confidence']))
   assert.equal(oneQuestion('Great. How confident are you, 1-5? And which year are you in?'), 'Great. How confident are you, 1-5?')
   assert.equal(oneQuestion('All set. Shall we start?'), 'All set. Shall we start?')
+})
+
+test('explicit topics are read by rule (live: "explain me disection of human body" looped on course selection)', () => {
+  assert.equal(requestedTopic('explain me disection of human body', false), 'disection of human body')
+  assert.equal(requestedTopic('I have my own topic: human body dissection.', false), 'human body dissection')
+  assert.equal(requestedTopic("its the topic disection of human body", false), 'disection of human body')
+  assert.equal(requestedTopic('I want to learn Python.', false), 'Python')
+  assert.equal(requestedTopic('Explain quadratic equations step by step please', false), 'quadratic equations')
+  // the answer to "which subject or skill?" is the topic itself
+  assert.equal(requestedTopic('disection of human body', true), 'disection of human body')
+  assert.equal(requestedTopic('disection of human body', false), null)
+  // filler and vague phrases are never topics
+  for (const m of ['explain this again please', 'Another subject or skill', 'I want to learn something new', 'explain more', 'tell me about it']) assert.equal(requestedTopic(m, true), null, m)
+  assert.equal(asksForExplanation('Explain quadratic equations'), true)
+  assert.equal(asksForExplanation('I want to learn Python'), false)
+  assert.equal(topicChange('Switch topic to photosynthesis'), 'photosynthesis')
+  assert.equal(topicChange('new topic: the French revolution'), 'the French revolution')
+  assert.equal(topicChange('switch it off'), null)
+  assert.equal(relatedTo('the musculoskeletal system', ['Human Body Dissection', 'Musculoskeletal systems']), true)
+  assert.equal(relatedTo('disection of human body', ['Machine Learning', 'Photosynthesis']), false)
+  assert.deepEqual(parseSlotAnswer('topic', 'its the topic disection of human body', new Date()), { topic: 'disection of human body' })
+})
+
+test('one-shot intake: only what is missing, validated as one payload, defaults for blanks', async () => {
+  const { buildIntake, applyIntake, intakeRecord, statedLearner, parseLevelAnswer } = await import('../src/agent/intake.ts')
+  const now = new Date('2026-11-25T10:00:00Z')
+  assert.deepEqual(statedLearner('I am in class 12 and a complete beginner'), { level: 'school', grade: 'Class 12', confidence: 1 })
+  assert.deepEqual(parseLevelAnswer('5'), { level: 'school', grade: 'Class 5' })
+  assert.deepEqual(parseLevelAnswer('12th class'), { level: 'school', grade: 'Class 12' })
+  const known = buildIntake({ courseId: 'c', level: 'school', grade: 'Class 12', confidence: 1, objective: 'conceptual_mastery', learningStyle: 'visual', material: 'ai', materialFor: 'c' }, { id: 'i', courseId: 'c', explain: true })
+  assert.equal(known, null, 'nothing left to ask')
+  const ik = buildIntake({ courseId: 'c' }, { id: 'i', courseId: 'c', explain: true })!
+  const rec = intakeRecord(ik)
+  const ok = applyIntake({ courseId: 'c' }, rec, { level: 'class_9_10', objective: 'visual' }, now)
+  assert.deepEqual(ok.problems, [])
+  assert.equal(ok.profile.learningStyle, 'visual', 'a blank style does not override the visual goal')
+  assert.equal(ok.profile.examDate, 'none'); assert.equal(ok.profile.dailyMinutes, 30); assert.equal(ok.profile.material, 'ai')
+  const bad = applyIntake({ courseId: 'c' }, rec, { confidence: 'genius', hack: 'x' }, now)
+  assert.deepEqual(bad.problems.sort(), ['invalid answer: confidence', 'unexpected answer: hack'])
+  const exam = applyIntake({ courseId: 'c' }, rec, { objective: 'exam', examDate: 'd14', dailyMinutes: 'm120' }, now)
+  assert.equal(exam.profile.examDate, '2026-12-09'); assert.equal(exam.profile.dailyMinutes, 120)
+})
+
+test('several courses on one subject: the best-covered title, then the newest, is reused (no duplicate course)', async () => {
+  const { courseNamed } = await import('../src/agent/profile.ts')
+  const cs = [
+    { id: 'a', title: 'Fundamentals of Human Dissection', createdAt: '2026-11-20' },
+    { id: 'b', title: 'Comprehensive Course on Human Dissection', createdAt: '2026-11-25' },
+    { id: 'c', title: 'Human Anatomy Dissection: Undergraduate Conceptual Mastery', createdAt: '2026-11-24' },
+  ]
+  assert.equal(courseNamed('explain human dissection', cs)?.id, 'b')
+  assert.equal(courseNamed('undergraduate conceptual mastery of dissection', cs)?.id, 'c')
+  assert.equal(courseNamed('quadratic equations', cs), null)
 })

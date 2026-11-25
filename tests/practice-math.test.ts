@@ -51,6 +51,19 @@ test('equivalent forms are graded correct by the maths service and update master
   assert.equal((await w.h.call('POST', `${T}/attempts`, w.stu, { itemId, response: 'os.system(1)' })).status, 400)
 })
 
+test('a repeated submission is one answer: concurrent duplicates add one attempt and one piece of evidence', { skip }, async () => {
+  const count = async (table: string, col: string, v: string) => Number((await w.owner.query(`select count(*) from education_tutor.${table} where ${col} = $1`, [v])).rows[0].count)
+  const [a0, e0] = [await count('attempts', 'item_id', itemId), await count('evidence', 'source_ref', `item:${itemId}`)]
+  const rs = await Promise.all([1, 2, 3].map(() => w.h.call('POST', `${T}/attempts`, w.stu, { itemId, response: '2 + 2*x', confidence: 'sure' })))
+  assert.deepEqual(rs.map((r) => r.status), [200, 200, 200])
+  assert.equal(new Set(rs.map((r) => r.json.attemptId)).size, 1, 'every caller gets the same attempt')
+  assert.equal(await count('attempts', 'item_id', itemId), a0 + 1)
+  assert.equal(await count('evidence', 'source_ref', `item:${itemId}`), e0 + 1)
+  // a different answer is a real new attempt
+  assert.equal((await w.h.call('POST', `${T}/attempts`, w.stu, { itemId, response: '2*x + 3' })).json.correct, false)
+  assert.equal(await count('attempts', 'item_id', itemId), a0 + 2)
+})
+
 test('tutor calculations are checked by the maths service: true ones marked, false ones relabelled', { skip }, async () => {
   const sess = (await w.h.call('POST', `${T}/sessions`, w.stu, { courseId: w.courseId })).json.id
   const r = await w.h.call('POST', `${T}/sessions/${sess}/turns`, w.stu, { message: 'how do I expand (x+1)^2?' })

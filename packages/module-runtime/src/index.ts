@@ -1,3 +1,4 @@
+import type { BaseCheckpointSaver } from '@langchain/langgraph-checkpoint'
 import { AppError } from '@platform/core'
 import { baseMigrations, type Database, type MigrationSet } from '@platform/tenancy-db'
 import { definePlatformPermissions, identityMigrations, PermissionRegistry } from '@platform/identity'
@@ -77,7 +78,7 @@ export interface Platform {
  * Register everything the enabled modules declare. A module that is absent simply contributes
  * nothing: no routes, permissions, jobs, subscriptions, UI entries or AI tasks.
  */
-export function buildPlatform(modules: ModuleManifest[], o: { db: Database; gateway: () => Gateway; tasks?: TaskRegistry; documents?: DocumentService; retrieval?: Retrieval; embeddingDimensions?: number; crypto?: FieldCrypto; math?: MathChecker }): Platform {
+export function buildPlatform(modules: ModuleManifest[], o: { db: Database; gateway: () => Gateway; tasks?: TaskRegistry; documents?: DocumentService; retrieval?: Retrieval; embeddingDimensions?: number; crypto?: FieldCrypto; math?: MathChecker; checkpointer?: BaseCheckpointSaver }): Platform {
   const ids = new Set<string>()
   for (const m of modules) {
     validateManifest(m)
@@ -91,6 +92,7 @@ export function buildPlatform(modules: ModuleManifest[], o: { db: Database; gate
 
   const depsFor = (moduleId: string): ModuleDeps => ({
     db: o.db,
+    checkpointer: o.checkpointer,
     inTenant: (p, fn) => o.db.withTenant({ tenantId: p.tenantId, userId: p.userId, roles: p.roles }, fn),
     enqueue: (tx, jobName, payload, opts) => enqueue(tx, `${moduleId}/${jobName}`, payload, opts),
     publish: (tx, topic, payload) => {
@@ -107,6 +109,8 @@ export function buildPlatform(modules: ModuleManifest[], o: { db: Database; gate
         stream: (taskId, input, ctx) => (own(taskId), o.gateway().stream(taskId, input, { tenantId: p.tenantId, userId: p.userId, ...ctx })),
         embed: (taskId, inputs, purpose) => (own(taskId), o.gateway().embed(taskId, inputs, { tenantId: p.tenantId, userId: p.userId }, purpose)),
         transcribe: (taskId, input, ctx) => (own(taskId), o.gateway().transcribe(taskId, input, { tenantId: p.tenantId, userId: p.userId, ...ctx })),
+        synthesize: (taskId, input, ctx) => (own(taskId), o.gateway().synthesize(taskId, input, { tenantId: p.tenantId, userId: p.userId, ...ctx })),
+        synthesizeStream: (taskId, input, ctx) => (own(taskId), o.gateway().synthesizeStream(taskId, input, { tenantId: p.tenantId, userId: p.userId, ...ctx })),
       }
     },
     ...(o.documents && o.retrieval ? moduleDocumentAccess(moduleId, o.documents, o.retrieval) : {}),

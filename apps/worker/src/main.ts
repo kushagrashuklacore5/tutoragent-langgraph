@@ -17,6 +17,8 @@ import { createMathClient } from '@platform/math-client'
 import { enqueue } from '@platform/jobs'
 import { buildPlatform } from '@platform/module-runtime'
 import { createFieldCrypto } from '@platform/module-runtime'
+import pg from 'pg'
+import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres'
 import { MODULES } from '../../api/src/modules.generated.ts'
 
 /** The runtime role must be subject to RLS: not superuser, not BYPASSRLS, owns no tables. */
@@ -71,6 +73,7 @@ const platform = buildPlatform(MODULES, {
   db, gateway: () => gateway, crypto: createFieldCrypto({ system, keyManager }),
   documents: docService, retrieval, embeddingDimensions: Number(process.env.EMBEDDING_DIMENSIONS ?? 1024),
   math: process.env.MATH_SOLVER_URL ? createMathClient({ baseUrl: process.env.MATH_SOLVER_URL, allowRemote: prod }) : undefined,
+  checkpointer: new PostgresSaver(checkpointPool(config.systemDatabaseUrl, 2), undefined, { schema: 'agent_graph' }),
 })
 gateway = createGateway({ system, keyManager, environment: config.env, adapters: ADAPTERS, tasks: platform.tasks })
 // INTEGRATION HOOK: register the documents processing job (PROCESS_JOB) with `documents` when wired
@@ -104,3 +107,6 @@ async function stop(signal: string) {
 }
 process.on('SIGTERM', () => void stop('SIGTERM'))
 process.on('SIGINT', () => void stop('SIGINT'))
+
+/** pool for LangGraph checkpoints (idle-connection errors must not crash the process) */
+function checkpointPool(url: string, max: number) { const pool = new pg.Pool({ connectionString: url, max }); pool.on('error', () => undefined); return pool }

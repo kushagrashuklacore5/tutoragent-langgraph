@@ -14,6 +14,8 @@ export interface FakeBehaviour {
   embedDimensions?: number
   /** speech-to-text result (default: a fixed transcript naming the byte count) */
   transcribe?: (audio: Buffer, language?: string) => string
+  /** text-to-speech result (default: a few bytes naming the text length) */
+  synthesize?: (text: string) => Buffer
   /** custom embedding function (e.g. a hashing embedder for retrieval tests) */
   embed?: (text: string, dims: number) => number[]
 }
@@ -31,7 +33,7 @@ export function createFakeAdapter(type = 'fake', behaviour: FakeBehaviour = {}):
   }
   return {
     calls,
-    descriptor: { type, version: '0.0.0', displayName: `Fake (${type})`, operations: ['generate', 'stream', 'embed', 'transcribe'], requiresApiKey: false, supportsDiscovery: true, supportsPrivateNetwork: true },
+    descriptor: { type, version: '0.0.0', displayName: `Fake (${type})`, operations: ['generate', 'stream', 'embed', 'transcribe', 'synthesize'], requiresApiKey: false, supportsDiscovery: true, supportsPrivateNetwork: true },
     async testConnection() {
       return { ok: true, latencyMs: 0, modelCount: 2 }
     },
@@ -56,6 +58,12 @@ export function createFakeAdapter(type = 'fake', behaviour: FakeBehaviour = {}):
       const fail = behaviour.failModels?.[model]
       if (fail) throw new GatewayError(fail, `fake ${fail}`)
       return { text: behaviour.transcribe ? behaviour.transcribe(req.audio, req.language) : `fake transcript (${req.audio.length} bytes)`, language: req.language ?? 'en', durationSec: 1, usage: { inputTokens: 0, outputTokens: 0, cachedInputTokens: null, reasoningTokens: null } }
+    },
+    async synthesize(_c, model, req) {
+      calls.push({ model, req: { inputs: [`speech:${req.text.length}`], purpose: 'document' } })
+      const fail = behaviour.failModels?.[model]
+      if (fail) throw new GatewayError(fail, `fake ${fail}`)
+      return { audio: behaviour.synthesize ? behaviour.synthesize(req.text) : Buffer.from(`fake-audio:${req.text.length}`), mimeType: 'audio/mpeg', usage: { inputTokens: req.text.length, outputTokens: 0, cachedInputTokens: null, reasoningTokens: null } }
     },
     async embed(_c, model, req) {
       calls.push({ model, req })

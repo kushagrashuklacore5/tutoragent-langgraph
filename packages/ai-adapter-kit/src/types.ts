@@ -3,7 +3,7 @@
  * Nothing here is specific to any vendor.
  */
 
-export type Operation = 'generate' | 'stream' | 'embed' | 'transcribe'
+export type Operation = 'generate' | 'stream' | 'embed' | 'transcribe' | 'synthesize'
 export type StructuredLevel = 'none' | 'json_mode' | 'json_schema'
 export type ToolLevel = 'none' | 'single' | 'parallel'
 
@@ -125,6 +125,21 @@ export interface TranscribeResult {
   text: string
   language: string | null
   durationSec: number | null
+  usage: Usage
+}
+
+/** Text-to-speech. `language` is a BCP-47 hint; `style` is provider-neutral (the adapter maps it to one of its voices). */
+export interface SynthesizeRequest {
+  text: string
+  language: 'hi-IN' | 'en-IN'
+  style?: 'teacher'
+  /** 0.5 to 2 */
+  pace?: number
+}
+export interface SynthesizeResult {
+  audio: Buffer
+  mimeType: string
+  /** characters billed are reported as input tokens, so per-character pricing meters through the usual path */
   usage: Usage
 }
 

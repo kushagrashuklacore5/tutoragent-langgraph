@@ -14,8 +14,12 @@ export interface Roadmap {
 export interface ProposalView { id: string; courseId: string; courseTitle: string; inputs: { examDate: string | null; dailyMinutes: number; studyDaysPerWeek: number }; roadmap: Roadmap; strategy?: { name: string; label: string; mix: Record<string, number> }; examEvidence?: { papers: number; top: { name: string; priority: number; verified: string; confidence: string }[] } }
 export interface Workflow { id: string; kind: 'planning' | 'apply_plan'; status: 'running' | 'done' | 'failed'; steps: { name: string; status: string; error?: string }[] }
 export interface Agenda { date: string; items: { kind: string; label: string; minutes: number; href?: string }[]; totalMinutes: number }
+/** the one consolidated onboarding intake: every question that still matters, answered together and submitted once */
+export interface IntakeQuestion { slot: string; label: string; options: { value: string; label: string }[]; default: string | null; required: boolean; allowCustom: boolean; showIf?: { slot: string; in: string[] } }
+export interface IntakeView { id: string; courseId: string; questions: IntakeQuestion[] }
 export interface AgentCard {
-  type: 'plan_proposal' | 'links' | 'workflow' | 'agenda' | 'sources' | 'choices' | 'book_answer' | 'upload'
+  type: 'plan_proposal' | 'links' | 'workflow' | 'agenda' | 'sources' | 'choices' | 'book_answer' | 'upload' | 'intake'
+  intake?: IntakeView
   auto?: boolean
   choices?: string[]
   bookAnswer?: { bookId: string; resumeTo: { pageNo: number; blockId: string | null } | null; notebookVersion: number }

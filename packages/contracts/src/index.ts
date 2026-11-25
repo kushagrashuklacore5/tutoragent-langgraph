@@ -1,3 +1,4 @@
+import type { BaseCheckpointSaver } from '@langchain/langgraph-checkpoint'
 import { AppError } from '@platform/core'
 import type { Database, Sql } from '@platform/tenancy-db'
 import type { JobHandler, EnqueueOptions, ScheduleSpec } from '@platform/jobs'
@@ -9,7 +10,7 @@ import type { SearchResult } from '@platform/retrieval'
 import type { MathChecker } from '@platform/math-client'
 export type { MathChecker } from '@platform/math-client'
 export type { SearchHit, SearchResult } from '@platform/retrieval'
-import type { CallContext, EmbedResultWithRoute, GatewayStreamEvent, RunInput, RunResult, TaskDefinition, TranscribeInput, TranscribeResultWithRoute } from './ai.ts'
+import type { CallContext, EmbedResultWithRoute, GatewayStreamEvent, RunInput, RunResult, SynthesizeInput, SynthesizeResultWithRoute, TaskDefinition, TranscribeInput, TranscribeResultWithRoute } from './ai.ts'
 
 export type { TaskDefinition } from './ai.ts'
 export type Role = 'student' | 'educator' | 'tenant_admin'
@@ -29,6 +30,8 @@ export interface ModuleAi {
   stream(taskId: string, input: RunInput, ctx?: Partial<CallContext>): AsyncIterable<GatewayStreamEvent>
   embed(taskId: string, inputs: string[], purpose?: 'document' | 'query'): Promise<EmbedResultWithRoute>
   transcribe(taskId: string, input: TranscribeInput, ctx?: Partial<CallContext>): Promise<TranscribeResultWithRoute>
+  synthesize(taskId: string, input: SynthesizeInput, ctx?: Partial<CallContext>): Promise<SynthesizeResultWithRoute>
+  synthesizeStream(taskId: string, input: SynthesizeInput, ctx?: Partial<CallContext>): AsyncIterable<Buffer>
 }
 
 /** Everything a module may use. Note: no system (BYPASSRLS) database access, no secrets, no providers. */
@@ -47,6 +50,8 @@ export interface ModuleDeps {
   retrieval?: ModuleRetrieval
   /** deterministic maths checks (SymPy service); absent = numbers cannot be verified (callers must fail closed) */
   math?: MathChecker
+  /** durable LangGraph checkpoints (host-provided, PostgreSQL); absent = workflows run without persistence (tests of pure parts only) */
+  checkpointer?: BaseCheckpointSaver
   /** field encryption at rest for the caller's tenant; absent in registration-only builds (no KeyManager) */
   crypto?: ModuleCrypto
 }

@@ -14,6 +14,8 @@ import { createFakeAdapter, type FakeBehaviour } from '@platform/ai-gateway/test
 import { configureLogging } from '@platform/observability'
 import type { MathChecker, ModuleManifest } from '@platform/contracts'
 import { migrationSetsFor } from '@platform/module-runtime'
+import pg from 'pg'
+import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres'
 import { createApp, type App } from '@platform/app-api'
 
 export const KM = localKeyManager(randomBytes(32))
@@ -39,9 +41,14 @@ export async function startHarness(modules: ModuleManifest[], opts: { test?: Tes
   const system = createSystemDatabase(test.systemUrl, { max: 5 })
   const mail = memoryTransport()
   const fake = createFakeAdapter('fake', opts.fake)
+  // the real PostgreSQL checkpointer (durability, interrupts and resume are tested against it)
+  const checkpointPool = new pg.Pool({ connectionString: test.systemUrl, max: 2 })
+  checkpointPool.on('error', () => undefined)
+  const checkpointer = new PostgresSaver(checkpointPool, undefined, { schema: 'agent_graph' })
   const app = createApp({
     env: 'test', db, system, keyManager: KM, mail, publicBaseUrl: 'http://app.test', allowedOrigins: ['http://app.test'],
     modules, adapters: { ...ADAPTERS, fake }, moduleCacheMs: 0, math: opts.math,
+    checkpointer,
     documents: opts.documents ? { store: localObjectStore(join(tmpdir(), `ebdocs-${randomBytes(4).toString('hex')}`), randomBytes(32)), scanner: devNoopScanner, embeddingDimensions: 256 } : undefined,
   })
   const server = http.createServer((req, res) => void app.handler(req, res))
@@ -74,6 +81,7 @@ export async function startHarness(modules: ModuleManifest[], opts: { test?: Tes
       await new Promise((r) => server.close(r))
       await db.close()
       await system.close()
+      await checkpointPool.end()
       if (!opts.test) await test.drop()
     },
   }

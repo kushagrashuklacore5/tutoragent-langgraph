@@ -69,17 +69,15 @@ test('journey: goal in one message, a couple of follow-ups, never re-asking what
 
   decideQueue.push({ intent: 'set_goal', profile: { objective: 'exam_prep', topic: 'Limits and derivatives', examDate: inDays(30), dailyMinutes: 60 }, reply: 'Great goal! Will you use your own notes, or shall I prepare the material?' })
   const r1 = await say(w.stu, `I have my Calculus exam in a month and can study about an hour a day`, conv)
-  assert.equal(r1.state.phase, 'onboarding', 'one optional follow-up before planning')
-  assert.match(r1.messages[1]!.content, /own notes|material/i)
+  assert.equal(r1.state.phase, 'onboarding', 'the remaining questions come first')
+  // ONE consolidated intake: what the message already said (goal, date, daily time) is never asked again
+  const ik = (r1.messages[1]!.cards as { type: string; intake?: { id: string; questions: { slot: string }[] } }[]).find((c) => c.type === 'intake')!.intake!
+  assert.deepEqual(ik.questions.map((q) => q.slot), ['level', 'confidence', 'learningStyle', 'material'])
+  assert.match(r1.messages[1]!.content, /quick questions/)
+  assert.doesNotMatch(r1.messages[1]!.content, /\?/, 'no separate question in the text')
 
-  // a direct answer is understood without the model (the scripted decide returns nothing useful)
-  decideQueue.push({ intent: 'onboarding_answer', reply: 'Thanks! How confident do you feel, 1 to 5?' })
-  const r2 = await say(w.stu, 'you prepare it', conv)
-  assert.equal(r2.state.phase, 'onboarding')
-
-  // the student declines the last optional question → the planning workflow runs (syllabus → mastery → roadmap)
-  decideQueue.push({ intent: 'onboarding_answer', profile: { skip: ['confidence', 'level'] }, reply: 'No problem.' })
-  const r3 = await say(w.stu, 'skip', conv)
+  // submitted ONCE (blank answers take their defaults); this student asked to review the plan first
+  const r3 = (await w.h.call('POST', `${A}/messages`, w.stu, { message: 'Complete beginner · Vidya prepares the lessons', conversationId: conv, language: 'en', intake: { id: ik.id, answers: { confidence: 'beginner', material: 'ai' }, review: true } })).json as Awaited<ReturnType<typeof say>>
   assert.equal(r3.state.phase, 'awaiting_approval')
   const cards = r3.messages[1]!.cards
   const wf = cards.find((c) => c.type === 'workflow')!.workflow!
@@ -144,7 +142,8 @@ test('approval starts learning by itself: the book opens; "continue" later retur
   const r = await say(w.stu, 'continue', conv)
   const back = r.messages[1]!.cards.find((c) => c.type === 'links') as unknown as { auto?: boolean; links: { href: string }[] }
   assert.equal(back.auto, true)
-  assert.equal(back.links[0]!.href, href, 'resumes the active book (the book keeps the exact lecture position)')
+  assert.match(href, /\?teach=1$/, 'approval starts teaching (Vidya takes over in the book)')
+  assert.equal(back.links[0]!.href, href.replace('?teach=1', ''), 'resumes the active book (the book keeps the exact lecture position)')
   assert.equal(decideQueue.length, before)
 })
 
@@ -183,7 +182,8 @@ test('model outage: the turn still completes with a deterministic reply and noth
   try {
     const r = await say(w.stu2, 'hi, I want to get better at calculus', fresh)
     assert.equal(r.messages[0]!.content, 'hi, I want to get better at calculus')
-    assert.match(r.messages[1]!.content, /main goal/, 'falls back to the next onboarding question')
+    // the onboarding intake is deterministic: it is offered even when the model is down
+    assert.ok(r.messages[1]!.cards.some((c) => c.type === 'intake'), 'falls back to the onboarding intake')
   } finally { aiDown = false }
 })
 

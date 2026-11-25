@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { arith, checkPractice, validateOutline } from '../src/courses/personal.ts'
-import { choicesFor } from '../src/agent/orchestrator.ts'
+import { choicesFor } from '../src/agent/graph/rules.ts'
 import { concreteSubject, parseSlotAnswer, requiredSlots, statedDailyMinutes, subjectSwitch } from '../src/agent/profile.ts'
 
 const now = new Date('2026-11-19T10:00:00Z')

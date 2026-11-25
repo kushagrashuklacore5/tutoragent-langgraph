@@ -1,0 +1,77 @@
+/* Vidya Live Teaching. Loaded only by the tutor demo. */
+.td-rig { display: block; width: 100%; height: 100%; overflow: visible; }
+.td-live { position: fixed; inset: 0; z-index: 80; display: grid; grid-template-rows: 54px minmax(0, 1fr) auto; color: var(--ink); background: radial-gradient(760px 620px at 21% 62%, rgb(66 120 255 / .24), transparent 70%), radial-gradient(900px 520px at 72% 18%, rgb(69 220 234 / .07), transparent 72%), linear-gradient(180deg, #080d1f 0, #0a1028 62%, #070a18 100%); animation: td-fade .3s both; }
+.td-live::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 30%; pointer-events: none; background: linear-gradient(180deg, transparent, rgb(3 6 16 / .55)); }
+.td-live > * { position: relative; z-index: 1; }
+.td-live-top { display: flex; align-items: center; gap: 12px; padding: 0 16px; border-bottom: 1px solid var(--line); }
+.td-live-top strong { min-width: 0; font: 600 14.5px var(--display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.td-live-top .td-ghost { margin-left: auto; min-height: 34px; padding: 4px 11px; font-size: 13px; flex: none; }
+.td-live-mark { display: inline-flex; align-items: center; gap: 7px; flex: none; font: 600 11px var(--display); letter-spacing: .11em; text-transform: uppercase; color: var(--cyan); }
+.td-live-mark i { width: 7px; height: 7px; border-radius: 50%; background: #ff6b6b; box-shadow: 0 0 0 3px rgb(255 107 107 / .2); }
+.td-live-voice { flex: none; padding: 2px 9px; font-size: 11.5px; color: var(--mute); border: 1px solid var(--line); border-radius: 99px; white-space: nowrap; }
+.td-live-stage { position: relative; display: grid; grid-template-columns: minmax(250px, 31%) minmax(0, 1fr); gap: clamp(8px, 1.6vw, 24px); min-height: 0; padding: 12px clamp(12px, 2vw, 28px) 0; }
+.td-teacher { position: relative; z-index: 3; min-height: 0; height: 100%; }
+.td-board { position: relative; align-self: center; height: min(100%, 720px); margin-bottom: 8px; overflow-y: auto; border-radius: 12px; color: #eaf3ee; background: radial-gradient(120% 90% at 30% 0, #16314a 0, #0f2436 56%, #0b1c2c 100%); border: 7px solid #232c47; outline: 1px solid rgb(148 170 225 / .3); box-shadow: 0 30px 60px -30px #000, inset 0 0 70px rgb(0 0 0 / .32); scrollbar-width: thin; }
+.td-board-body { display: grid; gap: 13px; padding: clamp(16px, 2.4vw, 32px); }
+.td-board-title { font: 600 11px var(--display); letter-spacing: .13em; text-transform: uppercase; color: rgb(180 214 226 / .7); }
+.td-b { padding: 7px 11px; border-radius: 8px; font-size: clamp(15px, 1.3vw, 18px); line-height: 1.55; border-left: 3px solid transparent; transition: background-color .28s, border-color .28s, opacity .3s; animation: td-board-in .46s var(--ease) both; opacity: .62; }
+.td-b.is-active { opacity: 1; background: rgb(69 220 234 / .09); border-left-color: var(--cyan); }
+.td-b h2 { font: 700 clamp(21px, 2.3vw, 31px)/1.2 var(--display); letter-spacing: -.02em; color: #fff; }
+.td-b.is-heading { opacity: 1; }
+.td-b-key { color: #ffe08a; font-weight: 600; }
+.td-b-label { margin-bottom: 3px; font: 600 10.5px var(--display); letter-spacing: .12em; text-transform: uppercase; color: var(--cyan); }
+.td-b-formula { padding: 6px 2px; text-align: center; font: 500 clamp(19px, 2vw, 27px)/1.5 'Cambria Math', Cambria, var(--book); color: #fff; overflow-wrap: anywhere; }
+.td-b-term { padding: 0 4px; border-radius: 5px; transition: background-color .22s, color .22s, box-shadow .22s; }
+.td-b-term.is-on { color: #10202c; background: #ffe08a; box-shadow: 0 0 0 3px rgb(255 224 138 / .25); }
+.td-b-steps { display: grid; gap: 4px; }
+.td-b-step { display: block; padding: 2px 6px; border-radius: 5px; opacity: .3; transition: opacity .3s, background-color .25s; }
+.td-b.is-list ul { display: grid; gap: 3px; padding-left: 0; }
+.td-b:not(.is-active) .td-b-step, .td-b-step.is-shown { opacity: 1; }
+.td-b-step.is-on { background: rgb(255 224 138 / .17); box-shadow: inset 2px 0 0 #ffe08a; }
+.td-b figure { display: grid; justify-items: center; gap: 5px; }
+.td-b img { display: block; max-width: 100%; max-height: 240px; border-radius: 6px; background: #fff; padding: 4px; }
+.td-b figcaption { text-align: center; font-size: 13.5px; }
+.td-b figcaption small { display: block; font-size: 11px; color: rgb(180 214 226 / .7); }
+.td-b blockquote { padding-left: 11px; border-left: 2px solid rgb(180 214 226 / .4); font-style: italic; }
+.td-board-note, .td-board-start { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 11px; padding: 18px; text-align: center; color: #cfe4ea; }
+.td-board-note { grid-auto-flow: column; align-items: center; }
+.td-board-start p { font: 600 clamp(18px, 2vw, 25px) var(--display); color: #fff; }
+.td-board-start label { display: flex; align-items: center; gap: 8px; font-size: 13.5px; }
+.td-board-start select { min-height: 38px; padding: 4px 8px; border-radius: 8px; background: #16314a; border: 1px solid rgb(180 214 226 / .4); }
+.td-board-start small { max-width: 38ch; color: rgb(180 214 226 / .8); }
+.td-beam { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 4; pointer-events: none; overflow: visible; }
+.td-beam line { stroke: #ffe08a; stroke-width: 1.6; stroke-dasharray: 2 5; stroke-linecap: round; opacity: 0; transition: opacity .18s; }
+.td-live-bar { display: grid; gap: 7px; padding: 9px clamp(12px, 2vw, 28px) calc(11px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: rgb(8 12 28 / .88); }
+.td-caption { display: grid; gap: 5px; min-height: 48px; font-size: clamp(14px, 1.2vw, 16px); line-height: 1.45; }
+.td-cap-track { display: block; height: 2px; border-radius: 2px; background: var(--s3); overflow: hidden; }
+.td-cap-track span { display: block; height: 100%; width: 0; background: var(--cyan); }
+.td-verdict { font: 600 13.5px var(--display); }
+.td-verdict.is-correct { color: var(--ok); }
+.td-verdict.is-partial, .td-verdict.is-incorrect { color: var(--warn); }
+.td-live-controls, .td-live-form { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
+.td-live-controls .td-primary, .td-live-controls .td-ghost, .td-live-form .td-primary, .td-live-form .td-ghost { min-height: 38px; padding: 5px 13px; font-size: 13.5px; }
+.td-live-form input { flex: 1; min-width: 150px; min-height: 40px; padding: 6px 12px; border-radius: 10px; background: var(--s1); border: 1px solid var(--line-2); }
+.td-live-form input:focus { outline: 0; border-color: var(--blue); }
+.td-live-wait { display: inline-flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--soft); }
+.td-launch-rig { display: block; width: 100%; height: 100%; }
+@keyframes td-board-in { from { opacity: 0; transform: translateY(9px); } }
+
+@media (max-width: 960px) and (min-width: 641px) { .td-live-stage { grid-template-columns: minmax(190px, 28%) minmax(0, 1fr); } }
+/* phones: the board is primary and Vidya is a picture-in-picture that keeps face and hands visible */
+@media (max-width: 640px) {
+  .td-live { grid-template-rows: 50px minmax(0, 1fr) auto; }
+  .td-live-top { gap: 8px; padding: 0 10px; }
+  .td-live-mark { display: none; }
+  .td-live-voice { display: none; }
+  .td-live-stage { grid-template: minmax(0, 1fr) 196px / minmax(0, 1fr); gap: 0; padding: 8px 8px 0; }
+  .td-board { grid-row: 1; height: 100%; align-self: stretch; margin: 0; border-width: 4px; }
+  .td-board-body { padding: 14px 12px; }
+  .td-teacher { grid-row: 2; display: flex; justify-content: center; height: 196px; overflow: hidden; pointer-events: none; }
+  .td-teacher .td-rig { flex: none; width: 176px; height: 316px; }
+  .td-beam { display: none; }
+  .td-caption { min-height: 42px; max-height: 88px; overflow-y: auto; }
+}
+@media (prefers-reduced-motion: reduce) { .td-b { animation: none; } }
+
+/* ?debug=lipsync only: live mouth class and measured audio→mouth delay */
+.td-lipdebug { position: absolute; left: 8px; top: 8px; z-index: 30; margin: 0; padding: 6px 8px; font: 11px/1.4 ui-monospace, monospace; color: #fff; background: rgb(0 0 0 / .62); border-radius: 6px; pointer-events: none; white-space: pre; }

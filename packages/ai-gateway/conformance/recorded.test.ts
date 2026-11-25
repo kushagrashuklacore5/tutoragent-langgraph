@@ -28,6 +28,8 @@ const DECLARED: Record<string, Partial<Capabilities>> = {
 
 for (const adapter of Object.values(ADAPTERS)) {
   const type = adapter.descriptor.type
+  // this suite covers chat models; a speech-only adapter has its own protocol test in its package
+  if (!adapter.descriptor.operations.includes('generate')) continue
   const protocol = PROTOCOL[type]
   if (!protocol) throw new Error(`No mock protocol registered for adapter ${type}; add it to the conformance harness`)
   describe(`conformance: ${type}`, () => {

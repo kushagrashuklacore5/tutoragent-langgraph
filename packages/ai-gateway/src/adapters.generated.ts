@@ -6,6 +6,7 @@ import { adapter as google_gemini } from '@platform/ai-adapter-google-gemini'
 import { adapter as groq } from '@platform/ai-adapter-groq'
 import { adapter as ollama } from '@platform/ai-adapter-ollama'
 import { adapter as openai_compatible } from '@platform/ai-adapter-openai-compatible'
+import { adapter as sarvam } from '@platform/ai-adapter-sarvam'
 
 export const ADAPTERS: Record<string, ProviderAdapter> = {
   [openai.descriptor.type]: openai,
@@ -14,4 +15,5 @@ export const ADAPTERS: Record<string, ProviderAdapter> = {
   [groq.descriptor.type]: groq,
   [ollama.descriptor.type]: ollama,
   [openai_compatible.descriptor.type]: openai_compatible,
+  [sarvam.descriptor.type]: sarvam,
 }

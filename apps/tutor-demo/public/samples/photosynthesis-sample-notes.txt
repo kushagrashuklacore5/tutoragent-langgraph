@@ -1,0 +1,18 @@
+Photosynthesis: Sample Study Notes (Ek Bharat.AI demo document)
+
+What is photosynthesis
+Photosynthesis is the process by which green plants, algae and some bacteria use light energy to make glucose from carbon dioxide and water. Oxygen is released as a by-product.
+The overall equation is 6CO2 + 6H2O + light energy -> C6H12O6 + 6O2.
+
+Where it happens
+In plants, photosynthesis takes place in chloroplasts, found mainly in the mesophyll cells of leaves. Chlorophyll is the green pigment that absorbs red and blue light. Stomata are small pores on the leaf that let carbon dioxide enter and oxygen leave.
+
+Light-dependent reactions
+These reactions occur in the thylakoid membranes. Light excites electrons in chlorophyll. Water is split (photolysis), releasing oxygen. The energy is stored in ATP and NADPH.
+Example: in bright sunlight, an aquatic plant such as Hydrilla releases visible bubbles of oxygen.
+
+The Calvin cycle
+The Calvin cycle occurs in the stroma and does not directly need light. The enzyme RuBisCO fixes carbon dioxide onto RuBP. ATP and NADPH from the light-dependent reactions are used to form G3P, which is used to build glucose.
+
+Factors affecting the rate
+The rate of photosynthesis depends on light intensity, carbon dioxide concentration and temperature. The factor in shortest supply is called the limiting factor. Very high temperature slows the rate because enzymes such as RuBisCO lose their shape.

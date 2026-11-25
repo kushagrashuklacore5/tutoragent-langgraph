@@ -15,6 +15,8 @@ import { keyManagerFromConfig, verifyKeyManager } from '@platform/ai-gateway'
 import { clamdScanner, devNoopScanner, localObjectStore, type ObjectStore, type Scanner } from '@platform/documents'
 import { createMathClient } from '@platform/math-client'
 import { createApp } from './app.ts'
+import pg from 'pg'
+import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres'
 import { MODULES } from './modules.generated.ts'
 
 /** The runtime role must be subject to RLS: not superuser, not BYPASSRLS, owns no tables. */
@@ -52,6 +54,8 @@ const keyManager = await keyManagerFromConfig(config.kms, { env: config.env, mas
 
 const db = createDatabase(config.appDatabaseUrl)
 const system = createSystemDatabase(config.systemDatabaseUrl)
+// durable LangGraph checkpoints (tables created by the tutor migrations; the saver never runs DDL)
+const checkpointer = new PostgresSaver(checkpointPool(config.systemDatabaseUrl, 4), undefined, { schema: 'agent_graph' })
 if (prod) {
   assertProductionReady(config, await appRoleProblems(db))
   await verifyKeyManager(keyManager)
@@ -66,6 +70,7 @@ const app = createApp({
   publicBaseUrl: config.publicBaseUrl, allowedOrigins: config.allowedOrigins, modules: MODULES, metricsToken: config.metricsToken,
   documents: documents ? { ...documents, embeddingDimensions: Number(process.env.EMBEDDING_DIMENSIONS ?? 1024) } : undefined,
   math: process.env.MATH_SOLVER_URL ? createMathClient({ baseUrl: process.env.MATH_SOLVER_URL, allowRemote: prod }) : undefined,
+  checkpointer,
 })
 const server = http.createServer((req, res) => void app.handler(req, res))
 server.listen(config.httpPort, () => logger.info('api listening', {
@@ -91,3 +96,6 @@ async function stop(signal: string) {
 }
 process.on('SIGTERM', () => void stop('SIGTERM'))
 process.on('SIGINT', () => void stop('SIGINT'))
+
+/** pool for LangGraph checkpoints (idle-connection errors must not crash the process) */
+function checkpointPool(url: string, max: number) { const pool = new pg.Pool({ connectionString: url, max }); pool.on('error', () => undefined); return pool }

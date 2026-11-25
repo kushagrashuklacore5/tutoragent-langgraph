@@ -26,9 +26,11 @@ function walk(dir: string, out: string[] = []): string[] {
 
 const SECRET = /\b(sk-(?:proj-|ant-)?[A-Za-z0-9_-]{24,}|gsk_[A-Za-z0-9]{24,}|AIza[0-9A-Za-z_-]{30,})\b|-----BEGIN (RSA |EC )?PRIVATE KEY-----/
 
+// files git ignores (local .env, build output) can never be committed, so they are not checked for committed secrets
+const ignored = new Set(execFileSync('git', ['ls-files', '--others', '--ignored', '--exclude-standard'], { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).split('\n').filter(Boolean))
 for (const file of walk(root)) {
   const rel = relative(root, file).split(sep).join('/')
-  if (rel === 'package-lock.json') continue
+  if (rel === 'package-lock.json' || ignored.has(rel)) continue
   const text = readFileSync(file, 'utf8')
   if (SECRET.test(text)) problems.push(`${rel}: looks like a committed secret`)
   if (!rel.endsWith('.ts')) continue

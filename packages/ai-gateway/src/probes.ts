@@ -88,6 +88,13 @@ export async function probeDeployment(adapter: ProviderAdapter, conn: ResolvedCo
     })
     if (ok) v.operations.push('transcribe')
   }
+  if (declared.operations.includes('synthesize') && adapter.synthesize) {
+    const ok = await run('synthesize', async () => {
+      const r = await adapter.synthesize!(conn, modelId, { text: 'OK.', language: 'en-IN' })
+      if (!r.audio.length) throw new Error('no audio')
+    })
+    if (ok) v.operations.push('synthesize')
+  }
   return { verified: v, checks }
 }
 

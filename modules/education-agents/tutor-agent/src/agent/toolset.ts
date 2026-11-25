@@ -50,9 +50,11 @@ async function conceptIn(t: Sql, courseId: string, conceptId: string | undefined
 /** Build a plan proposal from the stored profile (deterministic; nothing is written). */
 const words = (x: string) => x.toLowerCase().replace(/[^a-z0-9ऀ-ॿ]+/g, ' ').split(' ').filter((w) => w.length >= 4)
 /** Course topics matching the student's chapter/topic (by shared words), plus their unmastered prerequisites. */
-export function scopeToTopic(all: PlanConcept[], topic: string | undefined): { concepts: PlanConcept[]; note: string | null } {
+export function scopeToTopic(all: PlanConcept[], topic: string | undefined, courseTitle?: string): { concepts: PlanConcept[]; note: string | null } {
   if (!topic || /^(the )?complete material$|^poora material$|^all$/i.test(topic.trim())) return { concepts: all, note: null }
   const want = new Set(words(topic))
+  // naming the course's own subject asks for the course, not for the one topic that repeats its name
+  if (courseTitle && want.size) { const inTitle = new Set(words(courseTitle)); if ([...want].every((w) => inTitle.has(w))) return { concepts: all, note: null } }
   const hits = all.filter((c) => { const w = words(c.name); return w.some((x) => want.has(x) || [...want].some((y) => x.startsWith(y.slice(0, 5)))) })
   if (!hits.length) return { concepts: all, note: `I could not match "${topic}" to a topic of this course, so the plan covers the whole course.` }
   const byId = new Map(all.map((c) => [c.id, c]))
@@ -64,22 +66,38 @@ export function scopeToTopic(all: PlanConcept[], topic: string | undefined): { c
   return { concepts: all.filter((c) => keep.has(c.id)), note: `Focused on "${topic}": ${hits.length} topic(s)${added ? ` plus ${added} prerequisite(s) you will need` : ''}.` }
 }
 
+const BROAD = new Set(['learning', 'introduction', 'foundations', 'fundamentals', 'basics', 'artificial', 'intelligence', 'course', 'complete', 'advanced', 'concepts', 'understanding', 'overview', 'subject', 'studies'])
+const focusWords = (x: string) => x.toLowerCase().normalize('NFKD').replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter((w) => w.length >= 6 && !BROAD.has(w))
+/** Limited time goes first to what the student named, with everything it depends on; other topics wait. */
+export function focusForBudget<T extends { id: string; name: string; prerequisites: string[]; mastered?: boolean }>(concepts: T[], goal: string | undefined): { concepts: T[]; named: string[] } {
+  const said = new Set(focusWords(goal ?? ''))
+  const hits = concepts.filter((c) => focusWords(c.name).some((w) => said.has(w)))
+  if (!hits.length) return { concepts, named: [] }
+  const byId = new Map(concepts.map((c) => [c.id, c]))
+  const keep = new Set<string>()
+  // direct prerequisites only, at most 2 each (an AI syllabus often chains every chapter, which would keep them all)
+  for (const h of hits) { keep.add(h.id); for (const p of h.prerequisites.filter((x) => byId.has(x) && !byId.get(x)!.mastered).slice(0, 2)) keep.add(p) }
+  return { concepts: concepts.filter((c) => keep.has(c.id)), named: hits.map((c) => c.name) }
+}
+
 export async function proposePlan(ctx: ToolContext, courseId: string): Promise<Proposal> {
   const course = await requireEnrolled(ctx.t, ctx.p, courseId)
   if (course.role !== 'student') throw badRequest('not_a_student', 'Study plans are for students of this course')
   const profile = (await loadProfile(ctx.d, ctx.p, ctx.t)) ?? {}
   // a class preview needs no daily budget; everything else plans against the student's real time
-  const dailyMinutes = profile.dailyMinutes ?? (profile.objective === 'class_prep' ? 45 : null)
+  const totalMinutes = profile.totalMinutes ?? null
+  const dailyMinutes = profile.dailyMinutes ?? (totalMinutes ? Math.min(totalMinutes, 120) : profile.objective === 'class_prep' ? 45 : null)
   if (!dailyMinutes) throw badRequest('profile_incomplete', 'Daily study time is not known yet')
   const examDate = profile.examDate && profile.examDate !== 'none' ? profile.examDate : null
   const all = await planConcepts(ctx.t, courseId, ctx.now)
   if (!all.length) throw badRequest('no_concepts', 'This course has no approved topics yet')
   // scope to the chapter/topic the student asked for, plus the prerequisites it needs
-  const scoped = scopeToTopic(all, profile.topic)
+  const scoped = scopeToTopic(all, profile.topic, course.title)
   const preview = profile.objective === 'class_prep' && profile.depth !== 'deep'
-  const concepts = preview ? scoped.concepts.map((c) => ({ ...c, estMinutes: Math.max(10, Math.round(c.estMinutes * 0.35)) })) : scoped.concepts
+  const focused = totalMinutes ? focusForBudget(scoped.concepts, [profile.goalText, profile.topic].filter(Boolean).join(' ')) : { concepts: scoped.concepts, named: [] as string[] }
+  const concepts = preview ? focused.concepts.map((c) => ({ ...c, estMinutes: Math.max(10, Math.round(c.estMinutes * 0.35)) })) : focused.concepts
   const due = (await ctx.t.query<{ n: number }>(`select count(*)::int as n from education_tutor.cards where course_id = $1 and user_id = platform.current_user_id() and due_at < now() + interval '7 days'`, [courseId])).rows[0]!.n
-  const studyDaysPerWeek = profile.studyDaysPerWeek ?? 6
+  const studyDaysPerWeek = profile.studyDaysPerWeek ?? (totalMinutes ? 7 : 6)
   // past-paper evidence (when there is any) raises the weight of frequently examined topics; priorities stay estimates
   const { papers, questions } = await growthService(ctx.d).papersAndQuestions(ctx.p, ctx.t, courseId)
   const ready = papers.filter((x) => x.status === 'ready')
@@ -87,8 +105,9 @@ export async function proposePlan(ctx: ToolContext, courseId: string): Promise<P
   const weighted = ready.length ? concepts.map((c) => ({ ...c, examWeight: c.examWeight * (1 + (patterns.topics.find((x) => x.conceptId === c.id)?.priority ?? 0)) })) : concepts
   const daysToExam = examDate ? Math.ceil((Date.parse(`${examDate}T00:00:00Z`) - ctx.now.getTime()) / 86_400_000) : null
   const strategy = chooseStrategy({ objective: profile.objective, daysToExam })
-  const roadmap = buildRoadmap({ today: ctx.now, examAt: examDate ? new Date(`${examDate}T00:00:00Z`) : null, dailyMinutes, studyDaysPerWeek, concepts: weighted, reviewMinutesPerDay: Math.ceil((due * 1.5) / 7), diagnosticFirst: strategy.name === 'exam_sprint' || strategy.name === 'exam_prep' })
+  const roadmap = buildRoadmap({ today: ctx.now, examAt: examDate ? new Date(`${examDate}T00:00:00Z`) : null, dailyMinutes, totalMinutes, studyDaysPerWeek, concepts: weighted, reviewMinutesPerDay: Math.ceil((due * 1.5) / 7), diagnosticFirst: strategy.name === 'exam_sprint' || strategy.name === 'exam_prep' })
   if (scoped.note) roadmap.rationale.unshift(scoped.note)
+  if (focused.named.length && focused.concepts.length < scoped.concepts.length) roadmap.rationale.unshift(`With limited time, this plan puts ${focused.named.join(', ')} first, with the topics it directly depends on.`)
   roadmap.rationale.unshift(profile.material === 'own'
     ? 'Your uploaded material is the source: lessons follow it, and its own worked examples and exercises become your practice set (checked extra questions only fill gaps). The set is built once, right after you approve.'
     : profile.material === 'curriculum'

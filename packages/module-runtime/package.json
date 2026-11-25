@@ -9,19 +9,20 @@
     "./lifecycle": "./src/lifecycle.ts"
   },
   "dependencies": {
-    "@platform/core": "*",
-    "@platform/observability": "*",
-    "@platform/tenancy-db": "*",
-    "@platform/identity": "*",
-    "@platform/audit": "*",
-    "@platform/jobs": "*",
-    "@platform/events": "*",
+    "@langchain/langgraph-checkpoint": "1.2.2",
     "@platform/ai-gateway": "*",
+    "@platform/audit": "*",
     "@platform/contracts": "*",
-    "pg": "*",
+    "@platform/core": "*",
     "@platform/documents": "*",
-    "@platform/retrieval": "*",
+    "@platform/events": "*",
     "@platform/field-crypto": "*",
-    "@platform/math-client": "*"
+    "@platform/identity": "*",
+    "@platform/jobs": "*",
+    "@platform/math-client": "*",
+    "@platform/observability": "*",
+    "@platform/retrieval": "*",
+    "@platform/tenancy-db": "*",
+    "pg": "*"
   }
 }

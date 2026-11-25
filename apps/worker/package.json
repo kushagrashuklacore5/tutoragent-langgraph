@@ -4,12 +4,15 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@langchain/langgraph-checkpoint": "1.2.2",
+    "@langchain/langgraph-checkpoint-postgres": "1.1.2",
+    "@platform/ai-gateway": "*",
+    "@platform/app-api": "*",
     "@platform/core": "*",
+    "@platform/jobs": "*",
+    "@platform/module-runtime": "*",
     "@platform/observability": "*",
     "@platform/tenancy-db": "*",
-    "@platform/jobs": "*",
-    "@platform/ai-gateway": "*",
-    "@platform/module-runtime": "*",
-    "@platform/app-api": "*"
+    "pg": "8.23.1"
   }
 }

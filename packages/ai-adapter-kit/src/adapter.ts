@@ -1,5 +1,5 @@
 import type { HttpClient } from './http.ts'
-import type { DiscoveredModel, EmbedRequest, EmbedResult, GenerateRequest, GenerateResult, Operation, StreamEvent, TranscribeRequest, TranscribeResult } from './types.ts'
+import type { DiscoveredModel, EmbedRequest, EmbedResult, GenerateRequest, GenerateResult, Operation, StreamEvent, SynthesizeRequest, SynthesizeResult, TranscribeRequest, TranscribeResult } from './types.ts'
 
 /** A connection after the gateway resolved its secret and network policy. Never logged or persisted. */
 export interface ResolvedConnection {
@@ -43,6 +43,9 @@ export interface ProviderAdapter {
   stream(conn: ResolvedConnection, model: string, req: GenerateRequest, signal?: AbortSignal): AsyncIterable<StreamEvent>
   embed?(conn: ResolvedConnection, model: string, req: EmbedRequest, signal?: AbortSignal): Promise<EmbedResult>
   transcribe?(conn: ResolvedConnection, model: string, req: TranscribeRequest, signal?: AbortSignal): Promise<TranscribeResult>
+  synthesize?(conn: ResolvedConnection, model: string, req: SynthesizeRequest, signal?: AbortSignal): Promise<SynthesizeResult>
+  /** optional: the same speech as audio chunks while it is generated */
+  synthesizeStream?(conn: ResolvedConnection, model: string, req: SynthesizeRequest, signal?: AbortSignal): AsyncIterable<Buffer>
 }
 
 /** Small helper so adapters can implement testConnection via listModels or a cheap call. */

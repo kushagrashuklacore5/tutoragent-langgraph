@@ -25,3 +25,17 @@ materials and Ask-My-Notes, practice (MCQ/numeric/expression), misconception dia
 coach / next-best action, voice input, assessment engine (generation, marking, review, recovery), educator dashboards, and the
 agentic study companion (`src/agent/`: onboarding, roadmap proposals with approval, tool registry, background workflows).
 Not yet: teach-back, web resource search, server-side speech output.
+
+## Companion orchestration (LangGraph)
+
+The study companion runs as a LangGraph.js `StateGraph` (`src/agent/graph/`), checkpointed in PostgreSQL
+(`agent_graph` schema, migration `0019`). One thread per conversation (`<tenant>:<conversation>`, opened only after an
+RLS ownership check); one run per student turn, or a resumed run when the thread waits at an interrupt (roadmap
+approval, document scope). Subgraphs: document intelligence (`nodes/document.ts`) and course & roadmap planning
+(`nodes/planning.ts`, one checkpoint per step). Domain logic stays in the existing services (`profile.ts`, `toolset.ts`,
+`courses/*`, `studio/*`, `assessments.ts`, FSRS); nodes only orchestrate them. Checkpoints contain no student text.
+
+Operations: run migrations (`npm run migrate`) before starting the API/worker; both hosts create the checkpointer from
+`SYSTEM_DATABASE_URL`. Rollback: redeploy the previous release (commit `8771740`); the `agent_graph` schema can stay
+(unused by the old code) or be dropped. Tests: `tests/companion-graph.test.ts` (interrupts, restart, ownership),
+`tests/agent.test.ts`, `tests/document-first.test.ts`, `modules/.../tests/graph.unit.test.ts`.

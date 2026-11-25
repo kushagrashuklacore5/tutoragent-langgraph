@@ -1,16 +1,18 @@
 /**
- * Live progress of a companion turn ("Thinking…", "Reading your syllabus…"), streamed to the chat while the
- * agent works. Per-request via AsyncLocalStorage, so deep steps (planning, tools) can report without plumbing.
+ * Live progress of a companion turn ("Thinking…", "Reading your syllabus…"), streamed to the chat while the graph
+ * works: written to LangGraph's custom stream from any node or tool; a no-op outside a running graph (jobs).
  */
-import { AsyncLocalStorage } from 'node:async_hooks'
+import { getWriter } from '@langchain/langgraph'
 
 /** which specialist is working (shown as its avatar) */
 export type AgentRole = 'tutor' | 'planner' | 'teacher' | 'coach' | 'librarian'
 export interface StatusEvent { type: 'status'; text: string; agent: AgentRole }
-const als = new AsyncLocalStorage<(e: StatusEvent) => void>()
 
-export const status = (text: string, agent: AgentRole = 'tutor') => { als.getStore()?.({ type: 'status', text, agent }) }
-export const withStatus = <T>(emit: (e: StatusEvent) => void, fn: () => Promise<T>): Promise<T> => als.run(emit, fn)
+export const status = (text: string, agent: AgentRole = 'tutor') => {
+  let write: ((chunk: unknown) => void) | undefined
+  try { write = getWriter() } catch { write = undefined } // outside a graph run
+  write?.({ type: 'status', text, agent } satisfies StatusEvent)
+}
 
 /** what each tool is doing, in the student's words */
 export const TOOL_STATUS: Record<string, [string, AgentRole]> = {

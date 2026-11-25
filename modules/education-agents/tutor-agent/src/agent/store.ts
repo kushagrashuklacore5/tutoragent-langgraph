@@ -4,6 +4,7 @@
  *   - session state: agent_conversations.state (phase, asked slots, proposal, workflow) — structural, no free text
  *   - conversation: agent_messages.content_enc — purged after RETENTION_DAYS without activity
  */
+import type { Intake, IntakeRecord } from './intake.ts'
 import { randomUUID } from 'node:crypto'
 import { AppError } from '@platform/core'
 import type { ModuleDeps, Principal } from '@platform/contracts'
@@ -29,7 +30,8 @@ export interface Workflow { id: string; kind: 'planning' | 'apply_plan'; status:
 export interface ConvState {
   phase: 'onboarding' | 'planning' | 'awaiting_approval' | 'active'
   asked: string[]
-  lastAsked: Slot | null
+  /** the question the student is answering now: a profile slot, or 'subject' (the name of a new subject or topic) */
+  lastAsked: Slot | 'subject' | null
   proposal: Proposal | null
   workflow: Workflow | null
   appliedPlan: { courseId: string; version: number; proposalId: string; appliedAt: string } | null
@@ -41,11 +43,15 @@ export interface ConvState {
   sourceDoc?: { id: string; title: string; courseId: string } | null
   /** progress of the plan's question set (built once in the background) */
   questionSet?: { courseId: string; total: number; done: number; status: 'building' | 'ready'; added: number; fromDocument: number } | null
+  /** the one consolidated onboarding intake of the current goal (ids and slots only) */
+  intake?: IntakeRecord | null
 }
 export const initialState = (): ConvState => ({ phase: 'onboarding', asked: [], lastAsked: null, proposal: null, workflow: null, appliedPlan: null, nextSession: null, topic: null, activeBook: null })
 
 export interface Card {
-  type: 'plan_proposal' | 'links' | 'workflow' | 'agenda' | 'sources' | 'choices' | 'book_answer' | 'upload'
+  type: 'plan_proposal' | 'links' | 'workflow' | 'agenda' | 'sources' | 'choices' | 'book_answer' | 'upload' | 'intake'
+  /** every onboarding question that still matters, answered together and submitted once */
+  intake?: Intake
   /** a doubt answered inside the book: positions/ids only (the answer text is in the encrypted message) */
   bookAnswer?: { bookId: string; resumeTo: { pageNo: number; blockId: string | null } | null; notebookVersion: number }
   /** one-tap answers to the question just asked (the tap sends the label as the message) */

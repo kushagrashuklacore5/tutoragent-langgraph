@@ -23,7 +23,7 @@ export const DOCUMENT_TASKS: TaskDefinition[] = [{
 
 export interface DocSection { name: string; description: string; pageStart: number; pageEnd: number; keyTerms: string[] }
 export type DocAnalysis =
-  | { ok: true; documentId: string; filename: string; pages: number; subject: string; title: string; summary: string; sections: DocSection[] }
+  | { ok: true; documentId: string; filename: string; pages: number; subject: string; title: string; summary: string; sections: DocSection[]; listedOnly?: string[]; coverage?: Coverage }
   | { ok: false; documentId: string; filename: string; reason: 'failed' | 'processing' | 'too_little_text' | 'unclear'; message: string }
 
 const MAX_PAGES = 60
@@ -53,6 +53,47 @@ export function groundOutline(o: { subject?: string; title?: string; summary?: s
   const subject = String(o.subject ?? '').trim().slice(0, 160)
   const subjectOk = subject && (occurs(subject) || sections.length >= 2)
   return { subject: subjectOk ? subject : sections[0]!.name, title: String(o.title ?? subject ?? sections[0]!.name).trim().slice(0, 160) || sections[0]!.name, summary: String(o.summary ?? '').replace(/\s+/g, ' ').trim().slice(0, 600), sections: sections.slice(0, 16) }
+}
+
+export type PageKind = 'front' | 'syllabus' | 'index' | 'references' | 'exercises' | 'teaching'
+export interface Coverage { kinds: PageKind[]; teachingPages: number[]; indexLastPage: number | null; partial: boolean }
+
+const INDEX_LINE = /\S.*\s\d{1,4}\s*$/
+/** What a page IS, from its own text: a syllabus or index lists topics, only teaching pages explain them. */
+export function pageKind(text: string): PageKind {
+  const lines = text.split(/\n+/).map((x) => x.trim()).filter(Boolean)
+  const chars = text.replace(/\s+/g, '').length
+  if (/\b(index|table of contents|contents)\b/i.test(lines.slice(0, 4).join(' ')) && lines.filter((x) => INDEX_LINE.test(x)).length >= 4) return 'index'
+  if (/\b(course objectives|course outcomes|text ?books|syllabus)\b/i.test(text) && (/\bunit\s*[-–—]?\s*[ivx\d]+\b/i.test(text) || /reference books/i.test(text))) return 'syllabus'
+  if (/^(references|bibliography|reference books)\b/i.test(lines[0] ?? '')) return 'references'
+  // a cover has names and addresses but hardly any sentences
+  if (chars < 350 || (text.match(/[a-z]{3,}[.?!](?:\s|$)/g) ?? []).length < 3) return 'front'
+  if (/^(exercises?|review questions|practice questions|assignment)\b/i.test(lines[0] ?? '') || lines.filter((x) => /^(q\.?\s*)?\d{1,2}[.)]\s.+\?$/i.test(x)).length >= 4) return 'exercises'
+  return 'teaching'
+}
+/** A unit's opening outline only lists what comes later, so it is not evidence that the topic is taught here. */
+const withoutUnitOutline = (text: string) => {
+  const lines = text.split('\n')
+  const u = lines.findIndex((x) => /^\s*unit\s*[-–—]?\s*[ivx\d]+\s*$/i.test(x))
+  if (u < 0) return text
+  let e = u + 1
+  while (e < lines.length && lines[e]!.trim().length >= 40) e++
+  return [...lines.slice(0, u), ...lines.slice(e)].join('\n')
+}
+/** Which pages really teach, and whether the file's own index promises more pages than the file holds. */
+export function coverageOf(pages: string[]): Coverage {
+  const kinds = pages.map(pageKind)
+  const nums = pages.flatMap((t, i) => (kinds[i] === 'index' ? t.split('\n').filter((x) => INDEX_LINE.test(x)).map((x) => Number(/(\d{1,4})\s*$/.exec(x)![1])) : []))
+  const indexLastPage = nums.length ? Math.max(...nums) : null
+  return { kinds, teachingPages: kinds.flatMap((k, i) => (k === 'teaching' ? [i + 1] : [])), indexLastPage, partial: indexLastPage !== null && indexLastPage > pages.length }
+}
+/** Sections with real teaching text in this file; the rest are only listed by its syllabus or index. */
+export function splitByTeaching<T extends { name: string; keyTerms: string[] }>(sections: T[], pages: string[], c: Coverage): { taught: T[]; listedOnly: T[] } {
+  const body = norm(c.teachingPages.map((n) => withoutUnitOutline(pages[n - 1] ?? '')).join(' '))
+  const has = (x: string) => { const n = norm(x); return n.length >= 3 && body.includes(n) }
+  const taught: T[] = [], listedOnly: T[] = []
+  for (const s of sections) (has(s.name) || s.keyTerms.filter(has).length >= 2 ? taught : listedOnly).push(s)
+  return { taught, listedOnly }
 }
 
 /** Read the uploaded document and work out what it is about (grounded in its text). */
@@ -87,11 +128,18 @@ export async function analyseDocument(d: ModuleDeps, p: Principal, documentId: s
   const o = r.json as { subject?: string; title?: string; summary?: string; structured?: unknown; sections?: [] }
   const g = groundOutline(o, pages)
   if (!g || o.structured === false && g.sections.length < 2) return { ok: false, ...base, reason: 'unclear', message: `I read "${info.filename}", but I could not find clear topics in it, so I will not guess a syllabus. What subject is it, and which part do you want to learn?` }
-  return { ok: true, ...base, pages: info.page_count || pages.length, ...g }
+  const coverage = coverageOf(pages)
+  const { taught, listedOnly } = splitByTeaching(g.sections, pages, coverage)
+  // with no teaching pages at all the outline is still useful as a syllabus; describe() says so plainly
+  return { ok: true, ...base, pages: info.page_count || pages.length, ...g, sections: taught.length ? taught : g.sections, listedOnly: taught.length ? listedOnly.map((x) => x.name) : [], coverage }
 }
 
 /** Plain summary for the student: subject, what it covers, sections with pages (all from the document). */
 export function describe(a: Extract<DocAnalysis, { ok: true }>): string {
   const parts = a.sections.slice(0, 8).map((s) => `${s.name}${s.pageStart ? ` (p. ${s.pageStart}${s.pageEnd > s.pageStart ? `–${s.pageEnd}` : ''})` : ''}`).join('; ')
-  return `I read "${a.filename}" (${a.pages} page${a.pages === 1 ? '' : 's'}). It is about ${a.subject}.${a.summary ? ` ${a.summary}` : ''} It covers: ${parts}.`
+  const c = a.coverage
+  const honest = !c ? '' : !c.teachingPages.length
+    ? ' This file is a syllabus or index: it lists topics but does not teach them, so lessons would need another source.'
+    : `${c.partial ? ` Its index runs to page ${c.indexLastPage}, but this file has only ${a.pages} pages, so it is an excerpt.` : ''} Teaching content is on ${c.teachingPages.length} page${c.teachingPages.length === 1 ? '' : 's'}.${a.listedOnly?.length ? ` Listed but not taught in this file: ${a.listedOnly.slice(0, 6).join(', ')}${a.listedOnly.length > 6 ? ` +${a.listedOnly.length - 6} more` : ''}.` : ''}`
+  return `I read "${a.filename}" (${a.pages} page${a.pages === 1 ? '' : 's'}). It is about ${a.subject}.${a.summary ? ` ${a.summary}` : ''} ${c?.teachingPages.length ? 'It teaches' : 'It lists'}: ${parts}.${honest}`
 }

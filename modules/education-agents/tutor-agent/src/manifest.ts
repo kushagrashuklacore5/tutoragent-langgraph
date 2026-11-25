@@ -21,6 +21,7 @@ import { GENERATION_TASKS, generationRoutes } from './assessgen.ts'
 import { ASSESSMENT_TASKS, assessmentRoutes } from './assessments.ts'
 import { agentRoutes } from './agent/routes.ts'
 import { studioRoutes } from './studio/routes.ts'
+import { LIVE_TASKS, liveRoutes } from './studio/live.ts'
 import { growthRoutes } from './growth/routes.ts'
 import { GROWTH_TASKS } from './growth/prompts.ts'
 import { STUDIO_TASKS } from './studio/prompts.ts'
@@ -152,13 +153,21 @@ function routes(d: ModuleDeps): RouteDef[] {
         if (isRubricSpec(item.answer_spec)) throw badRequest('use_assessment', 'Written-answer questions are marked inside assessments')
         const s = item.answer_spec.type === 'expression' ? checked! : score(item.answer_spec, b.response)
         if (s.feedbackKey === 'invalid_response') throw badRequest('response_invalid', 'Response is not valid for this item')
-        // hints the server actually gave (hint ladder) count even if the client under-reports; the ladder resets per attempt
-        const seen = (await t.query<{ max_level: number }>('delete from education_tutor.hint_usage where user_id = platform.current_user_id() and item_id = $1 returning max_level', [item.id])).rows[0]?.max_level ?? 0
-        const hints = Math.max(clientHints, seen)
-        const attemptId = (await t.query<{ id: string }>(`insert into education_tutor.attempts (tenant_id, user_id, item_id, response, outcome, confidence, hints_used) values (platform.current_tenant(), $1, $2, $3, $4, $5, $6) returning id`,
-          [principal.userId, item.id, JSON.stringify(b.response), s.outcome, confidence, hints])).rows[0]!.id
-        await t.query(`insert into education_tutor.evidence (tenant_id, user_id, concept_id, kind, outcome, hints_used, source_ref) values (platform.current_tenant(), $1, $2, 'practice', $3, $4, $5)`,
-          [principal.userId, item.concept_id, s.outcome, hints, `item:${item.id}`])
+        // a double click or network retry is one answer: same student, item and response within seconds records nothing new
+        // (the lock makes concurrent submissions wait, so the second one sees the first)
+        await t.query('select pg_advisory_xact_lock(hashtextextended($1, 0))', [`attempt:${principal.userId}:${item.id}`])
+        const duplicate = (await t.query<{ id: string }>(`select id from education_tutor.attempts where user_id = platform.current_user_id() and item_id = $1 and response = $2::jsonb and created_at > clock_timestamp() - interval '10 seconds' order by created_at desc limit 1`,
+          [item.id, JSON.stringify(b.response)])).rows[0]
+        let attemptId = duplicate?.id
+        if (!attemptId) {
+          // hints the server actually gave (hint ladder) count even if the client under-reports; the ladder resets per attempt
+          const seen = (await t.query<{ max_level: number }>('delete from education_tutor.hint_usage where user_id = platform.current_user_id() and item_id = $1 returning max_level', [item.id])).rows[0]?.max_level ?? 0
+          const hints = Math.max(clientHints, seen)
+          attemptId = (await t.query<{ id: string }>(`insert into education_tutor.attempts (tenant_id, user_id, item_id, response, outcome, confidence, hints_used) values (platform.current_tenant(), $1, $2, $3, $4, $5, $6) returning id`,
+            [principal.userId, item.id, JSON.stringify(b.response), s.outcome, confidence, hints])).rows[0]!.id
+          await t.query(`insert into education_tutor.evidence (tenant_id, user_id, concept_id, kind, outcome, hints_used, source_ref) values (platform.current_tenant(), $1, $2, 'practice', $3, $4, $5)`,
+            [principal.userId, item.concept_id, s.outcome, hints, `item:${item.id}`])
+        }
         const m = estimate((await evidenceFor(t, [item.concept_id])).get(item.concept_id)!)
         return { attemptId, correct: s.correct, outcome: s.outcome, explanation: item.explanation, confidentAndWrong: confidence === 'sure' && !s.correct, mastery: m }
       })
@@ -248,7 +257,7 @@ export const manifest: ModuleManifest = {
     { key: P.study, description: 'Use the tutor, practice, revision and planner (own data only)', roles: ['student', 'educator'] },
     { key: P.insights, description: 'See aggregate, privacy-safe product insights (no individual student data)', roles: ['tenant_admin'] },
   ],
-  routes: (d) => [...routes(d), ...materialRoutes(d), ...diagnosisRoutes(d), ...coachRoutes(d), ...voiceRoutes(d), ...generationRoutes(d), ...assessmentRoutes(d), ...agentRoutes(d), ...studioRoutes(d), ...growthRoutes(d), ...personalRoutes(d)],
+  routes: (d) => [...routes(d), ...materialRoutes(d), ...diagnosisRoutes(d), ...coachRoutes(d), ...voiceRoutes(d), ...liveRoutes(d), ...generationRoutes(d), ...assessmentRoutes(d), ...agentRoutes(d), ...studioRoutes(d), ...growthRoutes(d), ...personalRoutes(d)],
   jobs: tutorJobs,
   schedules: SCHEDULES,
   ui: {
@@ -258,7 +267,7 @@ export const manifest: ModuleManifest = {
     ],
     nav: [{ label: 'Tutor', path: '/app/education/tutor', permission: P.read }],
   },
-  ai: { tasks: [...TASKS, ...MATERIAL_TASKS, ...DIAGNOSIS_TASKS, ...VOICE_TASKS, ...GENERATION_TASKS, ...ASSESSMENT_TASKS, ...AGENT_TASKS, ...STUDIO_TASKS, ...GROWTH_TASKS, ...PERSONAL_TASKS, ...DOCUMENT_TASKS] },
+  ai: { tasks: [...TASKS, ...MATERIAL_TASKS, ...DIAGNOSIS_TASKS, ...VOICE_TASKS, ...LIVE_TASKS, ...GENERATION_TASKS, ...ASSESSMENT_TASKS, ...AGENT_TASKS, ...STUDIO_TASKS, ...GROWTH_TASKS, ...PERSONAL_TASKS, ...DOCUMENT_TASKS] },
   data: {
     stores: [
       { kind: 'schema', name: 'education_tutor', onRemove: 'export_then_drop', description: 'courses, concepts, items, attempts, evidence, cards, goals, plans, sessions, turns, companion profiles/conversations/tasks, studio books/pages/notebooks/annotations, exam papers/questions, hint usage, growth prefs, chapter packages' },

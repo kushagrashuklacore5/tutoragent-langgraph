@@ -7,18 +7,21 @@
     ".": "./src/app.ts"
   },
   "dependencies": {
-    "@platform/core": "*",
-    "@platform/observability": "*",
-    "@platform/tenancy-db": "*",
-    "@platform/identity": "*",
-    "@platform/audit": "*",
-    "@platform/jobs": "*",
-    "@platform/events": "*",
+    "@langchain/langgraph-checkpoint": "1.2.2",
+    "@langchain/langgraph-checkpoint-postgres": "1.1.2",
     "@platform/ai-gateway": "*",
+    "@platform/audit": "*",
     "@platform/contracts": "*",
-    "@platform/module-runtime": "*",
+    "@platform/core": "*",
     "@platform/documents": "*",
+    "@platform/events": "*",
+    "@platform/identity": "*",
+    "@platform/jobs": "*",
+    "@platform/math-client": "*",
+    "@platform/module-runtime": "*",
+    "@platform/observability": "*",
     "@platform/retrieval": "*",
-    "@platform/math-client": "*"
+    "@platform/tenancy-db": "*",
+    "pg": "8.23.1"
   }
 }

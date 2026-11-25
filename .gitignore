@@ -4,3 +4,4 @@ node_modules/
 *.log
 coverage/
 *.tmp.ts
+apps/tutor-demo/dist/

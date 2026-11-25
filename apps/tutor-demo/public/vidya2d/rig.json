@@ -1,0 +1,116 @@
+{
+ "source": "Indian Woman in Traditional Attire Pose.png",
+ "size": [
+  1199,
+  1312
+ ],
+ "layers": {
+  "body": {
+   "file": "body.png",
+   "x": 386,
+   "y": 16,
+   "w": 409,
+   "h": 1271,
+   "hiddenFill": 0
+  },
+  "upperL": {
+   "file": "upper-left.png",
+   "x": 291,
+   "y": 246,
+   "w": 188,
+   "h": 94,
+   "hiddenFill": 0
+  },
+  "upperR": {
+   "file": "upper-right.png",
+   "x": 714,
+   "y": 248,
+   "w": 192,
+   "h": 113,
+   "hiddenFill": 0
+  },
+  "foreL": {
+   "file": "fore-left.png",
+   "x": 33,
+   "y": 250,
+   "w": 280,
+   "h": 64,
+   "hiddenFill": 1401
+  },
+  "foreR": {
+   "file": "fore-right.png",
+   "x": 884,
+   "y": 250,
+   "w": 282,
+   "h": 65,
+   "hiddenFill": 1376
+  }
+ },
+ "pivots": {
+  "shoulderL": [
+   473,
+   279
+  ],
+  "shoulderR": [
+   723,
+   284
+  ],
+  "elbowL": [
+   296,
+   280
+  ],
+  "elbowR": [
+   899,
+   285
+  ]
+ },
+ "fingertips": {
+  "left": [
+   36,
+   276
+  ],
+  "right": [
+   1163,
+   276
+  ]
+ },
+ "cap": 27,
+ "figure": {
+  "top": 16,
+  "bottom": 1286,
+  "centerX": 600
+ },
+ "mouth": {
+  "box": [
+   552,
+   148,
+   84,
+   54
+  ],
+  "shapes": {
+   "aa": "mouth-a.png",
+   "ee": "mouth-e-i.png",
+   "oh": "mouth-o.png",
+   "oo": "mouth-u.png",
+   "mbp": "mouth-mbp.png",
+   "fv": "mouth-fv.png",
+   "l": "mouth-l.png",
+   "td": "mouth-t-d-s.png",
+   "kg": "mouth-k-g.png"
+  },
+  "madeFrom": "original face pixels (tools/vidya2d/face.py)"
+ },
+ "eyes": {
+  "box": [
+   548,
+   100,
+   96,
+   40
+  ],
+  "shapes": {
+   "half": "eyes-half.png",
+   "closed": "eyes-closed.png"
+  },
+  "madeFrom": "original face pixels (tools/vidya2d/face.py)"
+ }
+}

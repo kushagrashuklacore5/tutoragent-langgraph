@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { TUTOR, api, describeError } from '../lib/api.ts'
-import { AGENTS, agentOf, streamTurn, type LiveStatus, FEASIBILITY_LABEL, hours, type AgentCard, type AgentMessage, type AgentView, type ProposalView, type TurnResponse } from '../lib/agent.ts'
+import { AGENTS, agentOf, streamTurn, type LiveStatus, FEASIBILITY_LABEL, hours, type AgentCard, type AgentMessage, type AgentView, type IntakeView, type ProposalView, type TurnResponse } from '../lib/agent.ts'
+import { CUSTOM, intakePayload, visibleQuestions } from '../lib/intake.ts'
 import { prefs } from '../lib/storage.ts'
 import { LANGUAGES, type Language } from '../lib/tutor.ts'
 import { canSpeak, speak, stopSpeaking, type VoiceLang } from '../lib/voice.ts'
@@ -92,7 +93,7 @@ export function UniversalChat({ variant, onClose, book }: { variant: 'home' | 'd
       openTimer.current = window.setTimeout(() => { setOpening(null); onClose?.(); navigate(auto.href) }, 1400)
     }
   }
-  const submit = async (text: string, from: 'text' | 'voice' = source, extra: { documentId?: string; documentTitle?: string } = {}) => {
+  const submit = async (text: string, from: 'text' | 'voice' = source, extra: { documentId?: string; documentTitle?: string; intake?: { id: string; answers: Record<string, string>; review: boolean } } = {}) => {
     const message = text.trim()
     if (!message || send.busy) return
     stopSpeaking()
@@ -193,7 +194,7 @@ export function UniversalChat({ variant, onClose, book }: { variant: 'home' | 'd
                 {m.kind === 'nudge' ? <p className="mb-1 text-[0.7rem] font-semibold uppercase tracking-wider text-accent">Reminder</p> : null}
                 {m.role === 'agent' ? <Markdown text={m.content} /> : <p className="whitespace-pre-wrap">{m.content}</p>}
               </div>
-              {m.cards.map((c, i) => <CardView key={i} card={c} pendingId={pendingId} busy={send.busy} onDecide={decide} last={m.id === messages.at(-1)?.id} onChoose={(t) => void submit(t, 'text')} onResume={book?.onResume} onAttach={() => fileRef.current?.click()} />)}
+              {m.cards.map((c, i) => <CardView key={i} card={c} pendingId={pendingId} busy={send.busy} onDecide={decide} last={m.id === messages.at(-1)?.id} onChoose={(t) => void submit(t, 'text')} onIntake={(t, intake) => void submit(t, 'text', { intake })} onResume={book?.onResume} onAttach={() => fileRef.current?.click()} />)}
             </div>
           </li>
         ))}
@@ -265,7 +266,8 @@ export function UniversalChat({ variant, onClose, book }: { variant: 'home' | 'd
   )
 }
 
-function CardView({ card, pendingId, busy, onDecide, last, onChoose, onResume, onAttach }: { card: AgentCard; pendingId: string | null; busy: boolean; onDecide: (id: string, approve: boolean) => void; last: boolean; onChoose: (text: string) => void; onResume?: () => void; onAttach: () => void }) {
+function CardView({ card, pendingId, busy, onDecide, last, onChoose, onIntake, onResume, onAttach }: { card: AgentCard; pendingId: string | null; busy: boolean; onDecide: (id: string, approve: boolean) => void; last: boolean; onChoose: (text: string) => void; onIntake: (summary: string, intake: { id: string; answers: Record<string, string>; review: boolean }) => void; onResume?: () => void; onAttach: () => void }) {
+  if (card.type === 'intake' && card.intake) return last ? <IntakeCard intake={card.intake} busy={busy} onSubmit={onIntake} /> : <p className="mt-1 text-xs text-muted">Answers sent</p>
   if (card.type === 'upload') return last ? <div className="mt-2"><button type="button" className="uc-action" disabled={busy} onClick={onAttach}>📎 Attach your PDF or notes</button><p className="mt-1 text-xs text-muted">PDF, DOCX, PPTX or TXT · I read it, then build your plan from it</p></div> : null
   if (card.type === 'choices' && card.choices?.length) {
     if (!last) return null
@@ -284,6 +286,36 @@ function CardView({ card, pendingId, busy, onDecide, last, onChoose, onResume, o
   if (card.type === 'links' && card.links?.length) return <div className="mt-2 flex flex-wrap gap-2">{card.links.map((l) => <Link key={l.href} to={l.href} className="uc-action">{l.label} <span aria-hidden>→</span></Link>)}</div>
   if (card.type === 'sources' && card.sources?.length) return <ul className="mt-2 grid gap-1 text-sm">{card.sources.map((s) => <li key={s.href}><Link to={s.href} className="text-accent underline">{s.filename}, {s.pages}</Link></li>)}</ul>
   return null
+}
+
+/** Every onboarding question that still matters, together; one "Start learning" sends them all. */
+function IntakeCard({ intake, busy, onSubmit }: { intake: IntakeView; busy: boolean; onSubmit: (summary: string, intake: { id: string; answers: Record<string, string>; review: boolean }) => void }) {
+  const [answers, setAnswers] = useState<Record<string, string>>(() => Object.fromEntries(intake.questions.filter((q) => q.default).map((q) => [q.slot, q.default!])))
+  const [custom, setCustom] = useState<Record<string, string>>({})
+  const [review, setReview] = useState(false)
+  const shown = visibleQuestions(intake.questions, answers)
+  const { answers: payload, summary, missing } = intakePayload(intake.questions, answers, custom)
+  const done = shown.filter((q) => payload[q.slot]).length
+  return (
+    <form className="uc-plan mt-2 grid gap-3" aria-label="Personalise your learning" onSubmit={(e) => { e.preventDefault(); if (!missing.length && !busy) onSubmit(summary, { id: intake.id, answers: payload, review }) }}>
+      <p className="text-sm font-semibold">Personalise your learning <span className="font-normal text-muted" aria-live="polite">· {done} of {shown.length} answered</span></p>
+      {shown.map((q, i) => (
+        <fieldset key={q.slot} className="grid gap-1">
+          <legend className="text-sm font-medium">{i + 1}. {q.label}{q.required ? <span className="text-muted"> (required)</span> : q.default ? null : <span className="text-muted"> (optional)</span>}</legend>
+          <div className="flex flex-wrap gap-2">
+            {[...q.options, ...(q.allowCustom ? [{ value: CUSTOM, label: 'Other…' }] : [])].map((o) => (
+              <label key={o.value} className={`uc-goal min-h-0 cursor-pointer py-2 ${answers[q.slot] === o.value ? 'ring-2 ring-accent' : ''}`}>
+                <input type="radio" className="sr-only" name={`${intake.id}-${q.slot}`} value={o.value} checked={answers[q.slot] === o.value} onChange={() => setAnswers((a) => ({ ...a, [q.slot]: o.value }))} />{o.label}
+              </label>
+            ))}
+          </div>
+          {answers[q.slot] === CUSTOM ? <input type="text" maxLength={160} className="rounded border px-2 py-1" aria-label={`${q.label}: your own answer`} placeholder="Type your answer" value={custom[q.slot] ?? ''} onChange={(e) => setCustom((c) => ({ ...c, [q.slot]: e.target.value }))} /> : null}
+        </fieldset>
+      ))}
+      <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={review} onChange={(e) => setReview(e.target.checked)} />Show me the plan before we start</label>
+      <div><Button type="submit" variant="primary" busy={busy} disabled={missing.length > 0}>Start learning</Button></div>
+    </form>
+  )
 }
 
 function ProposalCard({ p, pending, busy, onDecide }: { p: ProposalView; pending: boolean; busy: boolean; onDecide: (id: string, approve: boolean) => void }) {
